@@ -1,13 +1,15 @@
 #include <iostream>
 #include <chrono>
 #include <vector>
+#include <algorithm>
 #include <TCanvas.h>
 #include <TH2D.h>
 #include <TMultiGraph.h>
 #include <TGraph.h>
 #include <TLegend.h>
-#include <TLatex.h>
-#include <TRandom3.h>
+#include <random>
+#include <numeric>
+#include <unordered_set>
 
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
@@ -47,8 +49,9 @@ constexpr int kNumBins = 100; // Number of bins for histograms
 // Function to select randomly nTracks of dx and dy
 void selectDxy(const std::vector<Double_t>& dx, const std::vector<Double_t>& dy, Int_t nTracks, std::vector<Double_t>& selectedDx, std::vector<Double_t>& selectedDy);
 
-Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 3, Double_t Ea = 4.2, Double_t dMax = 50, Double_t dMin = -50,
-                       Double_t dL = 10, const std::string& gasName = "He", Double_t nTracks = 2) {
+
+Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Double_t dMax = 50, Double_t dMin = -50,
+                                    Double_t dL = 10, const std::string& gasName = "He", Double_t nTracks = 2) {
 
     const TVector3 startPoint(0, 0, -7000);
     const Double_t gasDensity = 9.345e-10;
@@ -69,7 +72,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 3, Double_t Ea = 4.2, Doubl
 
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
 
-    // Fill in the values for later choose them randmoly
+    // Fill in the values for later choose them randomly
     for(size_t k = 0; k < nData; k++){
         dx.push_back(dMin + k * (dMax - dMin) / nData);
         dy.push_back(dMin + k * (dMax - dMin) / nData);
@@ -79,8 +82,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 3, Double_t Ea = 4.2, Doubl
         std::cerr << "ERROR: Invalid number of selected tracks." << std::endl;
         return -1;
     }
-    
-    selectDxy(dx ,dy , nTracks, selectedDx, selectedDy);
+    selectDxy(dx, dy, nTracks, selectedDx, selectedDy);
 
     for (const auto& fieldName : fieldNames) {
         auto field = std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName);
@@ -90,7 +92,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 3, Double_t Ea = 4.2, Doubl
         auto canvasHeatMapRunTimeGSL = std::make_unique<TCanvas>((fieldName + "_Runtime_HeatmapsGSL").c_str(), (fieldName + " Runtime Heatmaps").c_str(), 800, 600);
         auto canvasHeatMapProbStandard = std::make_unique<TCanvas>((fieldName + "_Probability_HeatmapsStandard").c_str(), (fieldName + " Probability HeatmapsStandard").c_str(), 800, 600);
         auto canvasHeatMapRunTimeStandard = std::make_unique<TCanvas>((fieldName + "_Runtime_HeatmapsStandard").c_str(), (fieldName + " Runtime HeatmapsStandard").c_str(), 800, 600);
-    
+
         auto heatmapProbStandard = std::make_unique<TH2D>(("ProbabilityStandard_" + fieldName).c_str(), (fieldName + " Heatmap Probability Standard").c_str(), kNumBins, dMin, dMax, kNumBins, dMin, dMax);
         auto heatmapProbGSL = std::make_unique<TH2D>(("ProbabilityGSL_" + fieldName).c_str(), (fieldName + " Heatmap Probability GSL").c_str(), kNumBins, dMin, dMax, kNumBins, dMin, dMax);
         auto heatmapRuntimeStandard = std::make_unique<TH2D>(("RuntimeStandard_" + fieldName).c_str(), (fieldName + " Heatmap Runtime Standard").c_str(), kNumBins, dMin, dMax, kNumBins, dMin, dMax);
@@ -102,6 +104,13 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 3, Double_t Ea = 4.2, Doubl
         // Vector to hold probabilities for each selected dy
         std::vector<std::pair<std::vector<Double_t>, Double_t>> selectedDyProbabilitiesGSL(selectedDy.size());
         std::vector<std::pair<std::vector<Double_t>, Double_t>> selectedDyProbabilitiesStandard(selectedDy.size());
+
+        // Vector to hold runtimes for each selected dx
+        std::vector<std::pair<std::vector<Double_t>, Double_t>> selectedDxRunTimeGSL(selectedDx.size());
+        std::vector<std::pair<std::vector<Double_t>, Double_t>> selectedDxRunTimeStandard(selectedDx.size());
+        // Vector to hold runtimes for each selected dy
+        std::vector<std::pair<std::vector<Double_t>, Double_t>> selectedDyRunTimeGSL(selectedDy.size());
+        std::vector<std::pair<std::vector<Double_t>, Double_t>> selectedDyRunTimeStandard(selectedDy.size());
 
         for (size_t i = 0; i < nData; ++i) {
             Double_t xEnd = dx[i];
@@ -146,8 +155,20 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 3, Double_t Ea = 4.2, Doubl
                         selectedDxProbabilitiesGSL[k].first.push_back(probGSL.first);
                         selectedDxProbabilitiesStandard[k].first.push_back(probStandard);
                         selectedDxProbabilitiesGSL[k].second = xEnd;
-                        selectedDxProbabilitiesStandard[k].second = xEnd; 
-                        break; 
+                        selectedDxProbabilitiesStandard[k].second = xEnd;
+
+                        selectedDxRunTimeGSL[k].first.push_back(duration_gsl.count());
+                        selectedDxRunTimeStandard[k].first.push_back(duration_standard.count());
+                        selectedDxRunTimeGSL[k].second = xEnd;
+                        selectedDxRunTimeStandard[k].second = xEnd;
+
+                        if (kDebug) {
+                            std::cout << "+--------------------------------------------------------------------------+" << std::endl;
+                            std::cout << "Data saved for selected dx: " << xEnd << std::endl;
+                            std::cout << "+--------------------------------------------------------------------------+" << std::endl;
+                        }
+
+                        break;
                     }
                 }
 
@@ -158,6 +179,18 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 3, Double_t Ea = 4.2, Doubl
                         selectedDyProbabilitiesStandard[k].first.push_back(probStandard);
                         selectedDyProbabilitiesGSL[k].second = yEnd;
                         selectedDyProbabilitiesStandard[k].second = yEnd;
+
+                        selectedDyRunTimeGSL[k].first.push_back(duration_gsl.count());
+                        selectedDyRunTimeStandard[k].first.push_back(duration_standard.count());
+                        selectedDyRunTimeGSL[k].second = yEnd;
+                        selectedDyRunTimeStandard[k].second = yEnd;
+
+                        if (kDebug) {
+                            std::cout << "+--------------------------------------------------------------------------+" << std::endl;
+                            std::cout << "Data saved for selected dy: " << yEnd << std::endl;
+                            std::cout << "+--------------------------------------------------------------------------+" << std::endl;
+                        }
+
                         break;
                     }
                 }
@@ -167,7 +200,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 3, Double_t Ea = 4.2, Doubl
                 heatmapProbStandard->Fill(xEnd, yEnd, probStandard);
                 heatmapProbGSL->Fill(xEnd, yEnd, probGSL.first);
             }
-        }  
+        }
 
         canvasHeatMapProbStandard->cd();
         heatmapProbStandard->Draw("colz");
@@ -191,119 +224,320 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 3, Double_t Ea = 4.2, Doubl
         }
 
         if (kPlot) {
-            std::unique_ptr<TCanvas> canvas(new TCanvas((fieldName + "_canvas").c_str(), (fieldName + " Probability and Time Plots").c_str(), 800, 600));
-            canvas->Divide(2, 2);
-
-            // Pad 1 for selectedDxProbabilitiesGSL
-            canvas->cd(1);
-            std::unique_ptr<TMultiGraph> mg_dx_prob_gsl(new TMultiGraph());
+            auto canvasProb = std::make_unique<TCanvas>((fieldName + "_ProbabilityPlot").c_str(), (fieldName + " ProbabilityPlot").c_str(), 800, 600);
+            canvasProb->Divide(2,2);
+            
+            canvasProb->cd(1);
+            auto mg_dx_prob_gsl = std::make_unique<TMultiGraph>();
             mg_dx_prob_gsl->SetTitle("Probability vs. dy for selected dx (GSL)");
             mg_dx_prob_gsl->GetXaxis()->SetTitle("dy (mm)");
             mg_dx_prob_gsl->GetYaxis()->SetTitle("Probability");
-            std::unique_ptr<TLegend> legend_dx_prob_gsl(new TLegend(0.1, 0.7, 0.48, 0.9));
+            mg_dx_prob_gsl->GetXaxis()->SetLabelSize(0.03); 
+            mg_dx_prob_gsl->GetYaxis()->SetLabelSize(0.03); 
+            mg_dx_prob_gsl->GetXaxis()->SetTitleSize(0.03); 
+            mg_dx_prob_gsl->GetYaxis()->SetTitleSize(0.03); 
+            mg_dx_prob_gsl->GetXaxis()->SetTitleOffset(1.2); 
+            mg_dx_prob_gsl->GetYaxis()->SetTitleOffset(1.2);
+
+            Int_t colorIndex = 1;
             for (size_t i = 0; i < selectedDxProbabilitiesGSL.size(); ++i) {
                 auto& probabilities = selectedDxProbabilitiesGSL[i].first;
-                auto xEnd = selectedDxProbabilitiesGSL[i].second;
-                std::unique_ptr<TGraph> graph(new TGraph(probabilities.size(), dy.data(), probabilities.data()));
-                graph->SetMarkerStyle(20 + i);
-                graph->SetMarkerColor(i + 1);
-                mg_dx_prob_gsl->Add(graph.get());
-                legend_dx_prob_gsl->AddEntry(graph.get(), ("Dx = " + std::to_string(xEnd)).c_str(), "lp");
+                auto EndX = selectedDxProbabilitiesGSL[i].second;
+
+                auto graph = std::make_unique<TGraph>(nData, &dy[0], &probabilities[0]);
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
+                mg_dx_prob_gsl->Add(graph.get()); 
+                graph.release();
+
+                colorIndex ++;
             }
-            mg_dx_prob_gsl->Draw("AP");
-            legend_dx_prob_gsl->Draw();
+
+            mg_dx_prob_gsl->Draw("ACP");
 
             // Pad 2 for selectedDxProbabilitiesStandard
-            canvas->cd(2);
-            std::unique_ptr<TMultiGraph> mg_dx_prob_standard(new TMultiGraph());
+            canvasProb->cd(2);
+            auto mg_dx_prob_standard = std::make_unique<TMultiGraph>();
             mg_dx_prob_standard->SetTitle("Probability vs. dy for selected dx (Standard)");
             mg_dx_prob_standard->GetXaxis()->SetTitle("dy (mm)");
             mg_dx_prob_standard->GetYaxis()->SetTitle("Probability");
-            std::unique_ptr<TLegend> legend_dx_prob_standard(new TLegend(0.1, 0.7, 0.48, 0.9));
+            mg_dx_prob_standard->GetXaxis()->SetLabelSize(0.03); 
+            mg_dx_prob_standard->GetYaxis()->SetLabelSize(0.03); 
+            mg_dx_prob_standard->GetXaxis()->SetTitleSize(0.03); 
+            mg_dx_prob_standard->GetYaxis()->SetTitleSize(0.03); 
+            mg_dx_prob_standard->GetXaxis()->SetTitleOffset(1.2); 
+            mg_dx_prob_standard->GetYaxis()->SetTitleOffset(1.2);
+
+            colorIndex = 1;
             for (size_t i = 0; i < selectedDxProbabilitiesStandard.size(); ++i) {
                 auto& probabilities = selectedDxProbabilitiesStandard[i].first;
-                auto xEnd = selectedDxProbabilitiesStandard[i].second;
-                std::unique_ptr<TGraph> graph(new TGraph(probabilities.size(), dy.data(), probabilities.data()));
-                graph->SetMarkerStyle(20 + i);
-                graph->SetMarkerColor(i + 1);
-                mg_dx_prob_standard->Add(graph.get());
-                legend_dx_prob_standard->AddEntry(graph.get(), ("Dx = " + std::to_string(xEnd)).c_str(), "lp");
+                auto EndX = selectedDxProbabilitiesStandard[i].second;
+
+                auto graph = std::make_unique<TGraph>(nData, &dy[0], &probabilities[0]);
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
+                mg_dx_prob_standard->Add(graph.get()); 
+                graph.release();
+
+                colorIndex ++;
             }
-            mg_dx_prob_standard->Draw("AP");
-            legend_dx_prob_standard->Draw();
+            mg_dx_prob_standard->Draw("ACP");
 
             // Pad 3 for selectedDyProbabilitiesGSL
-            canvas->cd(3);
-            std::unique_ptr<TMultiGraph> mg_dy_prob_gsl(new TMultiGraph());
+            canvasProb->cd(3);
+            auto mg_dy_prob_gsl = std::make_unique<TMultiGraph>();
             mg_dy_prob_gsl->SetTitle("Probability vs. dx for selected dy (GSL)");
             mg_dy_prob_gsl->GetXaxis()->SetTitle("dx (mm)");
             mg_dy_prob_gsl->GetYaxis()->SetTitle("Probability");
-            std::unique_ptr<TLegend> legend_dy_prob_gsl(new TLegend(0.1, 0.7, 0.48, 0.9));
+            mg_dy_prob_gsl->GetXaxis()->SetLabelSize(0.03); 
+            mg_dy_prob_gsl->GetYaxis()->SetLabelSize(0.03); 
+            mg_dy_prob_gsl->GetXaxis()->SetTitleSize(0.03); 
+            mg_dy_prob_gsl->GetYaxis()->SetTitleSize(0.03); 
+            mg_dy_prob_gsl->GetXaxis()->SetTitleOffset(1.2); 
+            mg_dy_prob_gsl->GetYaxis()->SetTitleOffset(1.2);
+
+            colorIndex = 1;
             for (size_t i = 0; i < selectedDyProbabilitiesGSL.size(); ++i) {
                 auto& probabilities = selectedDyProbabilitiesGSL[i].first;
-                auto yEnd = selectedDyProbabilitiesGSL[i].second;
-                std::unique_ptr<TGraph> graph(new TGraph(probabilities.size(), dx.data(), probabilities.data()));
-                graph->SetMarkerStyle(20 + i);
-                graph->SetMarkerColor(i + 1);
-                mg_dy_prob_gsl->Add(graph.get());
-                legend_dy_prob_gsl->AddEntry(graph.get(), ("Dy = " + std::to_string(yEnd)).c_str(), "lp");
+                auto EndY = selectedDyProbabilitiesGSL[i].second;
+
+                auto graph = std::make_unique<TGraph>(probabilities.size(), dx.data(), probabilities.data());
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
+                mg_dy_prob_gsl->Add(graph.get()); 
+                graph.release();
+
+                colorIndex ++;
             }
-            mg_dy_prob_gsl->Draw("AP");
-            legend_dy_prob_gsl->Draw();
+            mg_dy_prob_gsl->Draw("ACP");
 
             // Pad 4 for selectedDyProbabilitiesStandard
-            canvas->cd(4);
-            std::unique_ptr<TMultiGraph> mg_dy_prob_standard(new TMultiGraph());
+            canvasProb->cd(4);
+            auto mg_dy_prob_standard = std::make_unique<TMultiGraph>();
             mg_dy_prob_standard->SetTitle("Probability vs. dx for selected dy (Standard)");
             mg_dy_prob_standard->GetXaxis()->SetTitle("dx (mm)");
             mg_dy_prob_standard->GetYaxis()->SetTitle("Probability");
-            std::unique_ptr<TLegend> legend_dy_prob_standard(new TLegend(0.1, 0.7, 0.48, 0.9));
+            mg_dy_prob_standard->GetXaxis()->SetLabelSize(0.03); 
+            mg_dy_prob_standard->GetYaxis()->SetLabelSize(0.03); 
+            mg_dy_prob_standard->GetXaxis()->SetTitleSize(0.03); 
+            mg_dy_prob_standard->GetYaxis()->SetTitleSize(0.03); 
+            mg_dy_prob_standard->GetXaxis()->SetTitleOffset(1.2); 
+            mg_dy_prob_standard->GetYaxis()->SetTitleOffset(1.2);
+
+            colorIndex = 1;
             for (size_t i = 0; i < selectedDyProbabilitiesStandard.size(); ++i) {
                 auto& probabilities = selectedDyProbabilitiesStandard[i].first;
-                auto yEnd = selectedDyProbabilitiesStandard[i].second;
-                std::unique_ptr<TGraph> graph(new TGraph(probabilities.size(), dx.data(), probabilities.data()));
-                graph->SetMarkerStyle(20 + i);
-                graph->SetMarkerColor(i + 1);
-                mg_dy_prob_standard->Add(graph.get());
-                legend_dy_prob_standard->AddEntry(graph.get(), ("Dy = " + std::to_string(yEnd)).c_str(), "lp");
+                auto EndY = selectedDyProbabilitiesStandard[i].second;
+
+                auto graph = std::make_unique<TGraph>(probabilities.size(), dx.data(), probabilities.data());
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
+                mg_dy_prob_standard->Add(graph.get()); 
+                graph.release();
+
+                colorIndex ++;
             }
-            mg_dy_prob_standard->Draw("AP");
-            legend_dy_prob_standard->Draw();
-            canvas->Draw();
+            mg_dy_prob_standard->Draw("ACP");
+
+            canvasProb->Draw();
 
             if (kSave) {
-                canvas->SaveAs("Probability_and_Time_Plots.png");
+                std::string imageNameProb = fieldName + "_Probability_Plots.png";
+                canvasProb->SaveAs(imageNameProb.c_str());
+            }
+
+            auto canvasRuntime = std::make_unique<TCanvas>((fieldName + "_RunTimePlot").c_str(), (fieldName + " RunTimePlot").c_str(), 800, 600);
+            canvasRuntime->Divide(2, 2);
+
+            // Pad 1 for selectedDxProbabilitiesGSL
+            canvasRuntime->cd(1);
+            auto mg_dx_run_gsl = std::make_unique<TMultiGraph>();
+            mg_dx_run_gsl->SetTitle("RunTime vs. dy for selected dx (GSL)");
+            mg_dx_run_gsl->GetXaxis()->SetTitle("dy (mm)");
+            mg_dx_run_gsl->GetYaxis()->SetTitle("Runtime (μs)");
+            mg_dx_run_gsl->GetXaxis()->SetLabelSize(0.03); 
+            mg_dx_run_gsl->GetYaxis()->SetLabelSize(0.03); 
+            mg_dx_run_gsl->GetXaxis()->SetTitleSize(0.03); 
+            mg_dx_run_gsl->GetYaxis()->SetTitleSize(0.03); 
+            mg_dx_run_gsl->GetXaxis()->SetTitleOffset(1.2); 
+            mg_dx_run_gsl->GetYaxis()->SetTitleOffset(1.2);
+
+            colorIndex = 1;
+            for (size_t i = 0; i < selectedDxRunTimeGSL.size(); ++i) {
+                auto& runTime = selectedDxRunTimeGSL[i].first;
+                auto EndX = selectedDxRunTimeGSL[i].second;
+                
+                auto graph = std::make_unique<TGraph>(runTime.size(), dy.data(), runTime.data());
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
+                mg_dx_run_gsl->Add(graph.get()); 
+                graph.release();
+
+                colorIndex ++;
+            }
+            mg_dx_run_gsl->Draw("ACP");
+
+            // Pad 2 for selectedDxProbabilitiesStandard
+            canvasRuntime->cd(2);
+            auto mg_dx_run_standard = std::make_unique<TMultiGraph>();   
+            mg_dx_run_standard->SetTitle("RunTime vs. dy for selected dx (Standard)");
+            mg_dx_run_standard->GetXaxis()->SetTitle("dy (mm)");
+            mg_dx_run_standard->GetYaxis()->SetTitle("Runtime (ms)");
+            mg_dx_run_standard->GetXaxis()->SetLabelSize(0.03); 
+            mg_dx_run_standard->GetYaxis()->SetLabelSize(0.03); 
+            mg_dx_run_standard->GetXaxis()->SetTitleSize(0.03); 
+            mg_dx_run_standard->GetYaxis()->SetTitleSize(0.03); 
+            mg_dx_run_standard->GetXaxis()->SetTitleOffset(1.2); 
+            mg_dx_run_standard->GetYaxis()->SetTitleOffset(1.2);
+
+            colorIndex = 1;
+            for (size_t i = 0; i < selectedDxRunTimeStandard.size(); ++i) {
+                auto& runTime = selectedDxRunTimeStandard[i].first;
+                auto EndX = selectedDxRunTimeStandard[i].second;
+                
+                auto graph = std::make_unique<TGraph>(runTime.size(), dy.data(), runTime.data());
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
+                mg_dx_run_standard->Add(graph.get()); 
+                graph.release();
+
+                colorIndex ++;
+            }
+            mg_dx_run_standard->Draw("ACP");
+
+            // Pad 3 for selectedDyProbabilitiesGSL
+            canvasRuntime->cd(3);
+            auto mg_dy_run_gsl = std::make_unique<TMultiGraph>();  
+            mg_dy_run_gsl->SetTitle("RunTime vs. dx for selected dy (GSL)");
+            mg_dy_run_gsl->GetXaxis()->SetTitle("dx (mm)");
+            mg_dy_run_gsl->GetYaxis()->SetTitle("Runtime (μs)");
+            mg_dy_run_gsl->GetXaxis()->SetLabelSize(0.03); 
+            mg_dy_run_gsl->GetYaxis()->SetLabelSize(0.03); 
+            mg_dy_run_gsl->GetXaxis()->SetTitleSize(0.03); 
+            mg_dy_run_gsl->GetYaxis()->SetTitleSize(0.03); 
+            mg_dy_run_gsl->GetXaxis()->SetTitleOffset(1.2); 
+            mg_dy_run_gsl->GetYaxis()->SetTitleOffset(1.2);
+            std::unique_ptr<TLegend> legend_dy_run_gsl(new TLegend(0.1, 0.7, 0.48, 0.9));
+            for (size_t i = 0; i < selectedDyRunTimeGSL.size(); ++i) {
+                auto& runTime = selectedDyRunTimeGSL[i].first;
+                auto EndY = selectedDyRunTimeGSL[i].second;
+
+                auto graph = std::make_unique<TGraph>(runTime.size(), dx.data(), runTime.data());
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
+                mg_dy_run_gsl->Add(graph.get()); 
+                graph.release();
+
+                colorIndex ++;
+            }
+            mg_dy_run_gsl->Draw("ACP");
+
+            // Pad 4 for selectedDyProbabilitiesStandard
+            canvasRuntime->cd(4);
+            auto mg_dy_run_standard = std::make_unique<TMultiGraph>();  
+            mg_dy_run_standard->SetTitle("RunTime vs. dx for selected dy (Standard)");
+            mg_dy_run_standard->GetXaxis()->SetTitle("dx (mm)");
+            mg_dy_run_standard->GetYaxis()->SetTitle("Runtime (ms)");
+            mg_dy_run_standard->GetXaxis()->SetLabelSize(0.03); 
+            mg_dy_run_standard->GetYaxis()->SetLabelSize(0.03); 
+            mg_dy_run_standard->GetXaxis()->SetTitleSize(0.03); 
+            mg_dy_run_standard->GetYaxis()->SetTitleSize(0.03); 
+            mg_dy_run_standard->GetXaxis()->SetTitleOffset(1.2); 
+            mg_dy_run_standard->GetYaxis()->SetTitleOffset(1.2);
+
+            colorIndex = 1;
+            for (size_t i = 0; i < selectedDyRunTimeStandard.size(); ++i) {
+                auto& runTime = selectedDyRunTimeStandard[i].first;
+                auto EndY = selectedDyRunTimeStandard[i].second;
+
+                auto graph = std::make_unique<TGraph>(runTime.size(), dx.data(), runTime.data());
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
+                mg_dy_run_standard->Add(graph.get()); 
+                graph.release();
+
+                colorIndex ++;
+            }
+            mg_dy_run_standard->Draw("ACP");
+            canvasRuntime->Draw();
+
+            if (kSave) {
+                std::string imageNameRuntime = fieldName + "_Runtime_Plots.png";
+                canvasRuntime->SaveAs(imageNameRuntime.c_str());
             }
         }
-
 
     }
     return 0;
 }
 
-void selectDxy(const std::vector<Double_t>& dx, const std::vector<Double_t>& dy, Int_t numSelectedTracks, std::vector<Double_t>& selectedDx, std::vector<Double_t>& selectedDy) {
-    // Check if numSelectedTracks is valid
-    if (numSelectedTracks <= 0 || numSelectedTracks > dx.size()) {
-        std::cerr << "ERROR: Invalid number of selected tracks." << std::endl;
-        return;
+void selectDxy(const std::vector<Double_t>& dx, const std::vector<Double_t>& dy, Int_t nTracks, std::vector<Double_t>& selectedDx, std::vector<Double_t>& selectedDy) {
+    // Number of data points
+    Int_t nData = dx.size();
+    // Create a vector to hold indices from 0 to nData-1
+    std::vector<Int_t> indices(nData);
+    std::iota(indices.begin(), indices.end(), 0);
+
+    // Shuffle the indices
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::shuffle(indices.begin(), indices.end(), gen);
+
+    // Clear selectedDx and selectedDy
+    selectedDx.clear();
+    selectedDy.clear();
+
+    // Select nTracks random indices from shuffled indices
+    for (Int_t i = 0; i < nTracks; ++i) {
+        // Check if the index has already been selected
+        // If yes, choose another one
+        Int_t randomIndex;
+        do {
+            randomIndex = indices.back(); // Take the last index in shuffled order
+            indices.pop_back(); // Remove it from the list
+        } while (std::find(selectedDx.begin(), selectedDx.end(), dx[randomIndex]) != selectedDx.end() &&
+                 std::find(selectedDy.begin(), selectedDy.end(), dy[randomIndex]) != selectedDy.end());
+        
+        // Add the selected values to selectedDx and selectedDy
+        selectedDx.push_back(dx[randomIndex]);
+        selectedDy.push_back(dy[randomIndex]);
+    }
+}
+
+void SetGraphLimits(TMultiGraph* mg) {
+    if (!mg) return;
+
+    double xMin = std::numeric_limits<double>::max();
+    double xMax = std::numeric_limits<double>::lowest();
+    double yMin = std::numeric_limits<double>::max();
+    double yMax = std::numeric_limits<double>::lowest();
+
+    // Iterate through all graphs in the TMultiGraph
+    TIter next(mg->GetListOfGraphs());
+    TObject* obj;
+    while ((obj = next())) {
+        if (obj->InheritsFrom(TGraph::Class())) {
+            TGraph* graph = dynamic_cast<TGraph*>(obj);
+            if (graph) {
+                int nPoints = graph->GetN();
+                if (nPoints == 0) continue;
+
+                // Compute minimum and maximum x and y values
+                Double_t* xVals = graph->GetX();
+                Double_t* yVals = graph->GetY();
+                for (int i = 0; i < nPoints; ++i) {
+                    if (xVals[i] < xMin) xMin = xVals[i];
+                    if (xVals[i] > xMax) xMax = xVals[i];
+                    if (yVals[i] < yMin) yMin = yVals[i];
+                    if (yVals[i] > yMax) yMax = yVals[i];
+                }
+            }
+        }
     }
 
-    // Initialize indices vector
-    std::vector<Int_t> indices(dx.size());
-    for (int i = 0; i < dx.size(); ++i) {
-        indices[i] = i;
-    }
-
-    // Shuffle indices vector randomly
-    TRandom3 rng;
-    std::shuffle(indices.begin(), indices.end(), std::default_random_engine(std::random_device()()));
-
-    // Select first numSelectedTracks indices
-    selectedDx.resize(numSelectedTracks);
-    selectedDy.resize(numSelectedTracks);
-    for (Int_t i = 0; i < numSelectedTracks; ++i) {
-        Int_t index = indices[i];
-        selectedDx[i] = dx[index];
-        selectedDy[i] = dy[index];
-    }
+    // Set axis limits with some padding
+    double xPadding = 0.05 * (xMax - xMin);
+    double yPadding = 0.05 * (yMax - yMin);
+    mg->GetXaxis()->SetLimits(xMin - xPadding, xMax + xPadding);
+    mg->GetYaxis()->SetLimits(yMin - yPadding, yMax + yPadding);
 }
