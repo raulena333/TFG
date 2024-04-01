@@ -27,7 +27,6 @@
 //*** - m1: Axion mass in eV (default: 0.1).
 //*** - m2: Axion mass in eV (default: 0.01).
 //*** - dL: The differential element in mm (default: 10)
-//*** - isResonance: Flag indicating whether to calculate transmission probability on resonance (default: false).
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::GetTransversalComponentAlongPath`,
@@ -60,40 +59,6 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 50, Double_t Ea = 4.2, std:
     const std::string fieldName = "babyIAXO_2024_cutoff";
     const Double_t gasDensity = 2.9836e-10;
 
-    //***
-    // Define all tracks
-    std::map<std::string, FieldTrack> fieldTracks;
-
-    std::vector<TVector3> startPoints = {
-        TVector3(250, 0, -6100),
-        TVector3(350, 350, -6100),
-        TVector3(-350, -350, -6100),
-        TVector3(-150, 20, -6100),
-        TVector3(-20, 220, -6100),
-        TVector3(-50, -90, -6100),
-        TVector3(-150, 420, -6100)
-    };
-
-    std::vector<TVector3> endPoints = {
-        TVector3(-250, 0, 6100),
-        TVector3(-350, -350, 6100),
-        TVector3(350, 350, 6100),
-        TVector3(-120, 70, 6100),
-        TVector3(-100, -170, 6100),
-        TVector3(70, -120, 6100),
-        TVector3(-270, -500, 6100)
-    };
-
-    std::vector<std::string> trackNames = {
-        "Center", "Extreme1", "Extreme2", "Random", "Random1", "Random2", "Outside"
-    };
-
-    // Populate fieldTracks
-    for (size_t i = 0; i < startPoints.size(); ++i) {
-            fieldTracks.emplace(trackNames[i], FieldTrack{startPoints[i], endPoints[i]});
-    }
-    //***
-
     // Create an instance of TRestAxionMagneticField
     TRestAxionMagneticField *field = new TRestAxionMagneticField("fields.rml", fieldName);
 
@@ -123,14 +88,13 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 50, Double_t Ea = 4.2, std:
 
         fieldTrack.second.timeGet = duration.count();
 
-        if(fDebug)
-        {
-        std::cout << "Time: " << duration.count() << " ms" << std::endl;    
-        std::cout << fieldTrack.first << " magneticValues:" << std::endl;
-        for (const auto& value : fieldTrack.second.magneticValues) {
-            std::cout << value << " ";
-        }
-        std::cout << std::endl;
+        if(fDebug){
+            std::cout << "Time: " << duration.count() << " ms" << std::endl;    
+            std::cout << fieldTrack.first << " magneticValues:" << std::endl;
+            for (const auto& value : fieldTrack.second.magneticValues) {
+                std::cout << value << " ";
+            }
+            std::cout << std::endl;
         }
     }
 
@@ -177,10 +141,12 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 50, Double_t Ea = 4.2, std:
 
         // Open the file for writing
         std::string filename;
-        if (ma == 0) {
+        if (ma == (gas != nullptr ? gas->GetPhotonMass(Ea) : 0)) {
             filename = "REST_AXION_Magnetic_results_OnResonance.txt";
         } else {
-            filename = "REST_AXION_Magnetic_results_OffResonance_Mass_" + std::to_string(ma) + ".txt";
+            std::ostringstream oss;
+            oss << std::fixed << std::setprecision(2) << ma;
+            filename = "REST_AXION_Magnetic_results_OffResonance_Mass_" + oss.str() + ".txt";
         }
 
         // Debug message: Opening file
@@ -195,7 +161,7 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 50, Double_t Ea = 4.2, std:
             return 1;
         }
 
-        outputFile << (ma == 0 ? "On resonance, dL : " : "Off resonance, dL : ") << dL << (ma == 0 ? "" : ", Axion-Mass :") << ma << std::endl;
+        outputFile << (ma == 0 ? "On resonance, dL : " : "Off resonance, dL : ") << dL << (ma == 0 ? "" : ", Axion-Mass :") << ma << std::fixed << std::setprecision(2) << std::endl;
         outputFile << "Direction\tProbability\tTimeProb (μs)\t TimeGet (ms)\n";
         for (const auto& field : fieldTracks)
             outputFile << field.first << "\t" << field.second.meanProbability << "\t" << field.second.meanTimeProb << "\t" << field.second.timeGet << "\n";
