@@ -9,7 +9,7 @@
 #include <TLegend.h>
 #include <random>
 #include <numeric>
-#include <unordered_set>
+#include <fstream>
 
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
@@ -25,9 +25,9 @@
 //*** - nData: Number of data points (axionMass) to generate (default: 100).
 //***          Specifies the number of data points to simulate along the trajectory.
 //*** - Ea: Axion energy in keV (default: 4.2).
-//*** - dMax: Maximum value for the x and y coordinates (default: 50).
+//*** - dMax: Maximum value for the x and y coordinates (default: 20).
 //***         Specifies the maximum value for the x and y coordinates of the trajectory.
-//*** - dMin: Minimum value for the x and y coordinates (default: -50).
+//*** - dMin: Minimum value for the x and y coordinates (default: -20).
 //***         Specifies the minimum value for the x and y coordinates of the trajectory.
 //*** - dL: The differential element in mm (default: 10).
 //***        Specifies the size of the differential element used in the simulation.
@@ -36,6 +36,8 @@
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::GetTransversalComponentAlongPath`.
+//*** `TRestAxionMagneticField::SetTrack', and `TRestAxionField::GammaTransmissionProbability' 
+//*** and `TRestAxionField::GammaTransmissionFieldMapProbability'
 //***
 //*** Author: Raul Ena
 //*******************************************************************************************************
@@ -49,13 +51,20 @@ constexpr int kNumBins = 100; // Number of bins for histograms
 // Function to select randomly nTracks of dx and dy
 void selectDxy(const std::vector<Double_t>& dx, const std::vector<Double_t>& dy, Int_t nTracks, std::vector<Double_t>& selectedDx, std::vector<Double_t>& selectedDy);
 
+// Function that sets Graph limits in x and y
+void SetGraphLimits(TMultiGraph* mg, Double_t paddingPercentage);
 
-Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Double_t dMax = 50, Double_t dMin = -50,
+Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Double_t dMax = 10, Double_t dMin = -10,
                                     Double_t dL = 10, const std::string& gasName = "He", Double_t nTracks = 2) {
 
+    auto start_time_code = std::chrono::high_resolution_clock::now();                                    
     const TVector3 startPoint(0, 0, -7000);
     const Double_t gasDensity = 9.345e-10;
     std::vector<Double_t> dx, dy, selectedDx, selectedDy;
+
+    // Variables to Plot Tracks
+    std::vector<TVector3> startPoints;
+    std::vector<TVector3> endPoints;
 
     // Create TRestAxionField and TRestAxionBufferGas instances
     auto axionField = std::make_unique<TRestAxionField>();
@@ -70,7 +79,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
     // Mass On Resonance
     Double_t axionMass = (gas != nullptr) ? gas->GetPhotonMass(Ea) : 0;
 
-    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
+    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
 
     // Fill in the values for later choose them randomly
     for(size_t k = 0; k < nData; k++){
@@ -84,14 +93,24 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
     }
     selectDxy(dx, dy, nTracks, selectedDx, selectedDy);
 
+    // Fill in an use DrawTracks ti visualize the Tracks we choose
+    for(size_t t = 0; t < selectedDx.size(); t++){
+        startPoints.push_back(startPoint);
+        endPoints.push_back(TVector3(selectedDx[t], selectedDy[t], 7000));
+    }
+
     for (const auto& fieldName : fieldNames) {
         auto field = std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName);
         axionField->AssignMagneticField(field.get());
 
-        auto canvasHeatMapProbGSL = std::make_unique<TCanvas>((fieldName + "_Probability_HeatmapsGSL").c_str(), (fieldName + " Probability HeatmapsGSL").c_str(), 800, 600);
-        auto canvasHeatMapRunTimeGSL = std::make_unique<TCanvas>((fieldName + "_Runtime_HeatmapsGSL").c_str(), (fieldName + " Runtime Heatmaps").c_str(), 800, 600);
-        auto canvasHeatMapProbStandard = std::make_unique<TCanvas>((fieldName + "_Probability_HeatmapsStandard").c_str(), (fieldName + " Probability HeatmapsStandard").c_str(), 800, 600);
-        auto canvasHeatMapRunTimeStandard = std::make_unique<TCanvas>((fieldName + "_Runtime_HeatmapsStandard").c_str(), (fieldName + " Runtime HeatmapsStandard").c_str(), 800, 600);
+        // Plot Tracks
+        if(kPlot)
+            field->DrawTracks(startPoints, endPoints, 100, kSave);
+
+        auto canvasHeatMapProbGSL = std::make_unique<TCanvas>((fieldName + "_Probability_HeatmapsGSL").c_str(), (fieldName + " Probability HeatmapsGSL").c_str(), 900, 700);
+        auto canvasHeatMapRunTimeGSL = std::make_unique<TCanvas>((fieldName + "_Runtime_HeatmapsGSL").c_str(), (fieldName + " Runtime Heatmaps").c_str(), 900, 700);
+        auto canvasHeatMapProbStandard = std::make_unique<TCanvas>((fieldName + "_Probability_HeatmapsStandard").c_str(), (fieldName + " Probability HeatmapsStandard").c_str(), 900, 700);
+        auto canvasHeatMapRunTimeStandard = std::make_unique<TCanvas>((fieldName + "_Runtime_HeatmapsStandard").c_str(), (fieldName + " Runtime HeatmapsStandard").c_str(), 900, 700);
 
         auto heatmapProbStandard = std::make_unique<TH2D>(("ProbabilityStandard_" + fieldName).c_str(), (fieldName + " Heatmap Probability Standard").c_str(), kNumBins, dMin, dMax, kNumBins, dMin, dMax);
         auto heatmapProbGSL = std::make_unique<TH2D>(("ProbabilityGSL_" + fieldName).c_str(), (fieldName + " Heatmap Probability GSL").c_str(), kNumBins, dMin, dMax, kNumBins, dMin, dMax);
@@ -203,13 +222,56 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
         }
 
         canvasHeatMapProbStandard->cd();
+        heatmapProbStandard->SetStats(0);
+        heatmapProbStandard->GetXaxis()->SetLabelSize(0.03);
+        heatmapProbStandard->GetXaxis()->SetLabelFont(22); 
+        heatmapProbStandard->GetXaxis()->SetTitleSize(0.03);
+        heatmapProbStandard->GetXaxis()->SetTitleFont(22);
+        heatmapProbStandard->GetYaxis()->SetLabelSize(0.03);
+        heatmapProbStandard->GetYaxis()->SetLabelFont(22); 
+        heatmapProbStandard->GetYaxis()->SetTitleSize(0.03);
+        heatmapProbStandard->GetYaxis()->SetTitleFont(22);
+        heatmapProbStandard->GetZaxis()->SetLabelSize(0.02);
         heatmapProbStandard->Draw("colz");
+
+
         canvasHeatMapProbGSL->cd();
+        heatmapProbGSL->SetStats(0);
+        heatmapProbGSL->GetXaxis()->SetLabelSize(0.03);
+        heatmapProbGSL->GetXaxis()->SetLabelFont(22); 
+        heatmapProbGSL->GetXaxis()->SetTitleSize(0.03);
+        heatmapProbGSL->GetXaxis()->SetTitleFont(22); 
+        heatmapProbGSL->GetYaxis()->SetLabelSize(0.03);
+        heatmapProbGSL->GetYaxis()->SetLabelFont(22); 
+        heatmapProbGSL->GetYaxis()->SetTitleSize(0.03); 
+        heatmapProbGSL->GetYaxis()->SetTitleFont(22); 
+        heatmapProbGSL->GetZaxis()->SetLabelSize(0.02);
         heatmapProbGSL->Draw("colz");
 
         canvasHeatMapRunTimeStandard->cd();
+        heatmapRuntimeStandard->SetStats(0);
+        heatmapRuntimeStandard->GetXaxis()->SetLabelSize(0.03);
+        heatmapRuntimeStandard->GetXaxis()->SetLabelFont(22); 
+        heatmapRuntimeStandard->GetXaxis()->SetTitleSize(0.03); 
+        heatmapRuntimeStandard->GetXaxis()->SetTitleFont(22);  
+        heatmapRuntimeStandard->GetYaxis()->SetLabelSize(0.03);
+        heatmapRuntimeStandard->GetYaxis()->SetLabelFont(22);
+        heatmapRuntimeStandard->GetYaxis()->SetTitleSize(0.03);
+        heatmapRuntimeStandard->GetYaxis()->SetTitleFont(22); 
+        heatmapRuntimeStandard->GetZaxis()->SetLabelSize(0.02);
         heatmapRuntimeStandard->Draw("colz");
+
         canvasHeatMapRunTimeGSL->cd();
+        heatmapRuntimeGSL->SetStats(0);
+        heatmapRuntimeGSL->GetXaxis()->SetLabelSize(0.03);
+        heatmapRuntimeGSL->GetXaxis()->SetLabelFont(22); 
+        heatmapRuntimeGSL->GetXaxis()->SetTitleSize(0.03);
+        heatmapRuntimeGSL->GetXaxis()->SetTitleFont(22); 
+        heatmapRuntimeGSL->GetYaxis()->SetLabelSize(0.03); 
+        heatmapRuntimeGSL->GetYaxis()->SetLabelFont(22);
+        heatmapRuntimeGSL->GetYaxis()->SetTitleSize(0.03);
+        heatmapRuntimeGSL->GetYaxis()->SetTitleFont(22); 
+        heatmapRuntimeGSL->GetZaxis()->SetLabelSize(0.02);
         heatmapRuntimeGSL->Draw("colz");
 
         if (kSave) {
@@ -252,7 +314,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
 
                 colorIndex ++;
             }
-
+            SetGraphLimits(mg_dx_prob_gsl.get(), 0.05);
             mg_dx_prob_gsl->Draw("ACP");
 
             // Pad 2 for selectedDxProbabilitiesStandard
@@ -281,6 +343,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
 
                 colorIndex ++;
             }
+            SetGraphLimits(mg_dx_prob_standard.get(), 0.05);
             mg_dx_prob_standard->Draw("ACP");
 
             // Pad 3 for selectedDyProbabilitiesGSL
@@ -309,6 +372,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
 
                 colorIndex ++;
             }
+            SetGraphLimits(mg_dy_prob_gsl.get(), 0.05);
             mg_dy_prob_gsl->Draw("ACP");
 
             // Pad 4 for selectedDyProbabilitiesStandard
@@ -337,6 +401,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
 
                 colorIndex ++;
             }
+            SetGraphLimits(mg_dy_prob_standard.get(), 0.05);
             mg_dy_prob_standard->Draw("ACP");
 
             canvasProb->Draw();
@@ -375,6 +440,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
 
                 colorIndex ++;
             }
+            SetGraphLimits(mg_dx_run_gsl.get(), 0.05);
             mg_dx_run_gsl->Draw("ACP");
 
             // Pad 2 for selectedDxProbabilitiesStandard
@@ -403,6 +469,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
 
                 colorIndex ++;
             }
+            SetGraphLimits(mg_dx_run_standard.get(), 0.05);
             mg_dx_run_standard->Draw("ACP");
 
             // Pad 3 for selectedDyProbabilitiesGSL
@@ -430,6 +497,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
 
                 colorIndex ++;
             }
+            SetGraphLimits(mg_dy_run_gsl.get(), 0.05);
             mg_dy_run_gsl->Draw("ACP");
 
             // Pad 4 for selectedDyProbabilitiesStandard
@@ -458,6 +526,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
 
                 colorIndex ++;
             }
+            SetGraphLimits(mg_dy_run_standard.get(), 0.05);
             mg_dy_run_standard->Draw("ACP");
             canvasRuntime->Draw();
 
@@ -468,6 +537,17 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
         }
 
     }
+    auto end_time_code = std::chrono::high_resolution_clock::now();
+    auto duration_code = std::chrono::duration_cast<std::chrono::seconds>(end_time_code - start_time_code);
+
+    std::ofstream outFile("DurationCode.txt");
+    if (outFile.is_open()) {
+        outFile << duration_code.count() << " seconds"; // Assuming duration_code is a numeric type
+        outFile.close();
+    } else {
+        std::cerr << "Error: Unable to open DurationCode.txt for writing." << std::endl;
+    }
+
     return 0;
 }
 
@@ -504,13 +584,13 @@ void selectDxy(const std::vector<Double_t>& dx, const std::vector<Double_t>& dy,
     }
 }
 
-void SetGraphLimits(TMultiGraph* mg) {
+void SetGraphLimits(TMultiGraph* mg, Double_t paddingPercentage) {
     if (!mg) return;
 
-    double xMin = std::numeric_limits<double>::max();
-    double xMax = std::numeric_limits<double>::lowest();
-    double yMin = std::numeric_limits<double>::max();
-    double yMax = std::numeric_limits<double>::lowest();
+    Double_t xMin = std::numeric_limits<Double_t>::max();
+    Double_t xMax = std::numeric_limits<Double_t>::lowest();
+    Double_t yMin = std::numeric_limits<Double_t>::max();
+    Double_t yMax = std::numeric_limits<Double_t>::lowest();
 
     // Iterate through all graphs in the TMultiGraph
     TIter next(mg->GetListOfGraphs());
@@ -519,13 +599,13 @@ void SetGraphLimits(TMultiGraph* mg) {
         if (obj->InheritsFrom(TGraph::Class())) {
             TGraph* graph = dynamic_cast<TGraph*>(obj);
             if (graph) {
-                int nPoints = graph->GetN();
+                Int_t nPoints = graph->GetN();
                 if (nPoints == 0) continue;
 
                 // Compute minimum and maximum x and y values
                 Double_t* xVals = graph->GetX();
                 Double_t* yVals = graph->GetY();
-                for (int i = 0; i < nPoints; ++i) {
+                for (Int_t i = 0; i < nPoints; ++i) {
                     if (xVals[i] < xMin) xMin = xVals[i];
                     if (xVals[i] > xMax) xMax = xVals[i];
                     if (yVals[i] < yMin) yMin = yVals[i];
@@ -535,9 +615,9 @@ void SetGraphLimits(TMultiGraph* mg) {
         }
     }
 
-    // Set axis limits with some padding
-    double xPadding = 0.05 * (xMax - xMin);
-    double yPadding = 0.05 * (yMax - yMin);
+    // Set axis limits with padding
+    Double_t xPadding = paddingPercentage * (xMax - xMin);
+    Double_t yPadding = paddingPercentage * (yMax - yMin);
     mg->GetXaxis()->SetLimits(xMin - xPadding, xMax + xPadding);
-    mg->GetYaxis()->SetLimits(yMin - yPadding, yMax + yPadding);
+    mg->GetYaxis()->SetRangeUser(yMin - yPadding, yMax + yPadding);
 }
