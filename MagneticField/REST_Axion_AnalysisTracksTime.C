@@ -54,7 +54,7 @@ void selectDxy(const std::vector<Double_t>& dx, const std::vector<Double_t>& dy,
 // Function that sets Graph limits in x and y
 void SetGraphLimits(TMultiGraph* mg, Double_t paddingPercentage);
 
-Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Double_t dMax = 10, Double_t dMin = -10,
+Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Double_t dMax = 10, Double_t dMin = -10,
                                     Double_t dL = 10, const std::string& gasName = "He", Double_t nTracks = 2) {
 
     auto start_time_code = std::chrono::high_resolution_clock::now();                                    
@@ -79,7 +79,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
     // Mass On Resonance
     Double_t axionMass = (gas != nullptr) ? gas->GetPhotonMass(Ea) : 0;
 
-    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
+    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff" , "babyIAXO_2024"};
 
     // Fill in the values for later choose them randomly
     for(size_t k = 0; k < nData; k++){
@@ -245,7 +245,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
         heatmapProbGSL->GetYaxis()->SetLabelFont(22); 
         heatmapProbGSL->GetYaxis()->SetTitleSize(0.03); 
         heatmapProbGSL->GetYaxis()->SetTitleFont(22); 
-        heatmapProbGSL->GetZaxis()->SetLabelSize(0.02);
+        heatmapProbGSL->GetZaxis()->SetLabelSize(0.03);
         heatmapProbGSL->Draw("colz");
 
         canvasHeatMapRunTimeStandard->cd();
@@ -258,7 +258,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 2, Double_t Ea = 4.2, Doubl
         heatmapRuntimeStandard->GetYaxis()->SetLabelFont(22);
         heatmapRuntimeStandard->GetYaxis()->SetTitleSize(0.03);
         heatmapRuntimeStandard->GetYaxis()->SetTitleFont(22); 
-        heatmapRuntimeStandard->GetZaxis()->SetLabelSize(0.02);
+        heatmapRuntimeStandard->GetZaxis()->SetLabelSize(0.03);
         heatmapRuntimeStandard->Draw("colz");
 
         canvasHeatMapRunTimeGSL->cd();
