@@ -28,7 +28,7 @@
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Name of the gas used in the buffer gas (default: "He").
 //*** - mi: Initial axion mass in eV (default: 0).
-//*** - mf: Final axion mass in eV (default: 0.4).
+//*** - mf: Final axion mass in eV (default: 0.5).
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::SetTrack`,
@@ -50,12 +50,12 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 5, Double_t Ea = 4.2, std::string gasName = "He", 
-                                            Double_t mi = 0, Double_t mf = 0.4) {
+Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", 
+                                            Double_t mi = 0, Double_t mf = 0.5) {
 
     /// Definition of variables
     const char* cfgFileName = "fields.rml";
-    Double_t gasDensity = 1e-11;
+    Double_t gasDensity = 2.9868e-10;
     TVector3 position(-100, -100 ,-11000);
     TVector3 direction(0.01, 0.01 ,1);
     std::vector<Double_t> mass;
@@ -88,7 +88,7 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 5, Double_t Ea = 4.2, std::s
     Double_t step = (mf - mi) / nData;
     for (unsigned j = 0; j < nData; j++) {
         Double_t ma = (mi + j * step);
-        
+
         if(kDebug){
             std::cout << "+--------------------------------------------------------------------------+" << std::endl;
             std::cout << "Mass: " << ma << std::endl;
@@ -98,7 +98,7 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 5, Double_t Ea = 4.2, std::s
 
         for (auto& field : fields) {
             auto start_time = std::chrono::high_resolution_clock::now();
-            std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.1, 100, 20);
+            std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.5, 100, 20);
             auto end_time = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
@@ -122,21 +122,23 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 5, Double_t Ea = 4.2, std::s
     if (kPlot) {
         /// PLOT ///
         TCanvas* canvas1 = new TCanvas("canvas1", "Bykovskiy2019 vs Bykovskiy2020", 800, 600);
-        TCanvas* canvas2 = new TCanvas("canvas2", "Mentisk vs MentiskCut", 900, 800);
+        TCanvas* canvas2 = new TCanvas("canvas2", "Mentisk vs MentiskCut", 850, 637);
 
         // Canvas 1 - Bykovskiy2019 vs Bykovskiy2020
         canvas1->cd();
         std::vector<TGraphErrors*> graphs1;
+        TLegend* legendB = new TLegend(0.7, 0.7, 0.9, 0.9);
         Int_t colorIndex = 1;
         for (auto& field : fields) {
             if (field.first == "Bykovskiy2019" || field.first == "Bykovskiy2020") {
-                TGraphErrors* graph1 = new TGraphErrors(nData, &mass[0], &field.second.probability[0], nullptr, &field.second.error[0]);
+                TGraphErrors* graph = new TGraphErrors(nData, &mass[0], &field.second.probability[0], 0, &field.second.error[0]);
                 
-                graph1->SetLineColor(colorIndex);
-                graph1->SetLineWidth(1);
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
                 
-                graph1->Draw((field.first == "Bykovskiy2019") ? "ACP" : "L SAME");
-                graphs1.push_back(graph1);
+                graph->Draw((field.first == "Bykovskiy2019") ? "ACP" : "L SAME");
+                graphs1.push_back(graph);
+                legendB->AddEntry(graph, field.first.c_str(), "l");
                 colorIndex++;
             }
         }
@@ -150,71 +152,54 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 5, Double_t Ea = 4.2, std::s
         graphs1[0]->GetYaxis()->SetTitleSize(0.04);
         graphs1[0]->GetYaxis()->SetLabelSize(0.03);
 
+        legendB->Draw();
+
         // Canvas 2 - Mentisk vs MentiskCut
-        canvas2->Divide(2, 1);
+        canvas2->cd();
 
-        // First pad - Mentisk
-        canvas2->cd(1);
-        std::vector<TGraphErrors*> graphs2_1;
+        std::vector<TGraphErrors*> graphs2;
+        TLegend* legendM = new TLegend(0.7, 0.7, 0.9, 0.9);
+        colorIndex = 1;
         for (auto& field : fields) {
-            if (field.first == "Mentisk") {
-                TGraphErrors* graph2_1 = new TGraphErrors(nData, &mass[0], &field.second.probability[0], nullptr, &field.second.error[0]);
-                graph2_1->SetLineColor(colorIndex);
-                graph2_1->SetLineWidth(1);
+            if (field.first == "Mentisk" || field.first == "MentiskCut") {
+                TGraphErrors* graph = new TGraphErrors(nData, &mass[0], &field.second.probability[0], 0, &field.second.error[0]);
 
-                graph2_1->Draw("ACP");
-                graphs2_1.push_back(graph2_1);
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
+
+                graph->Draw((field.first == "Mentisk") ? "ACP" : "L SAME");
+                graphs2.push_back(graph);
+                legendM->AddEntry(graph, field.first.c_str(), "l");
                 colorIndex++;
             }
         }
 
-        // Set axis labels for the first pad of canvas 2
-        graphs2_1[0]->GetXaxis()->SetTitle("Mass (eV)");
-        graphs2_1[0]->GetYaxis()->SetTitle("Probability");
-        graphs2_1[0]->SetTitle("Mentisk");
-        graphs2_1[0]->GetXaxis()->SetTitleSize(0.04);
-        graphs2_1[0]->GetXaxis()->SetLabelSize(0.03);
-        graphs2_1[0]->GetYaxis()->SetTitleSize(0.04);
-        graphs2_1[0]->GetYaxis()->SetLabelSize(0.03);
+        // Set axis labels for canvas 2
+        graphs2[0]->GetXaxis()->SetTitle("Mass (eV)");
+        graphs2[0]->GetYaxis()->SetTitle("Probability");
+        graphs2[0]->SetTitle("Mentisk vs MentiskCut");
+        graphs2[0]->GetXaxis()->SetTitleSize(0.04);
+        graphs2[0]->GetXaxis()->SetLabelSize(0.03);
+        graphs2[0]->GetYaxis()->SetTitleSize(0.04);
+        graphs2[0]->GetYaxis()->SetLabelSize(0.03);
 
-        // Second pad - MentiskCut
-        canvas2->cd(2);
-        std::vector<TGraphErrors*> graphs2_2;
-        for (auto& field : fields) {
-            if (field.first == "MentiskCut") {
-                TGraphErrors* graph2_2 = new TGraphErrors(nData, &mass[0], &field.second.probability[0], nullptr, &field.second.error[0]);
-                graph2_2->SetLineColor(colorIndex);
-                graph2_2->SetLineWidth(1);
-                graph2_2->Draw("ACP");
-                graphs2_2.push_back(graph2_2);
-                colorIndex++;
-            }
-        }
-
-        // Set axis labels for the second pad of canvas 2
-        graphs2_2[0]->GetXaxis()->SetTitle("Mass (eV)");
-        graphs2_2[0]->GetYaxis()->SetTitle("Probability");
-        graphs2_2[0]->SetTitle("MentiskCut");
-        graphs2_2[0]->GetXaxis()->SetTitleSize(0.04);
-        graphs2_2[0]->GetXaxis()->SetLabelSize(0.03);
-        graphs2_2[0]->GetYaxis()->SetTitleSize(0.04);
-        graphs2_2[0]->GetYaxis()->SetLabelSize(0.03);
+        legendM->Draw();
 
         TCanvas* canvas3 = new TCanvas("canvas3", "Mass vs Runtime", 800, 600);
         canvas3->cd();
         TMultiGraph* mg = new TMultiGraph();
         TLegend* legend = new TLegend(0.7, 0.7, 0.9, 0.9);
-        Int_t colorIndex1 = 1;
+        colorIndex = 1;
 
         for (auto& field : fields) {
             std::vector<double> runtime = field.second.timeComputation;
-            TGraph* graph3 = new TGraph(nData, &mass[0], &runtime[0]);
-            graph3->SetLineColor(colorIndex1);
-            graph3->SetLineWidth(1);
-            graph3->SetTitle(field.first.c_str());
-            mg->Add(graph3);
-            legend->AddEntry(graph3, field.first.c_str(), "l");
-            colorIndex1++;
+            TGraph* graph = new TGraph(nData, &mass[0], &runtime[0]);
+            graph->SetLineColor(colorIndex);
+            graph->SetLineWidth(1);
+            graph->SetTitle(field.first.c_str());
+            mg->Add(graph);
+            legend->AddEntry(graph, field.first.c_str(), "l");
+            colorIndex++;
         }
 
         mg->Draw("ACP");
