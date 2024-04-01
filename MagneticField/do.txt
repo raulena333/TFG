@@ -1,0 +1,21 @@
+//*******************************************************************************************************
+//*** Description: This script performs analysis on different magnetic field maps represented as grids with varying 
+//*** mesh sizes. It also calculates the transmission probability, error and runtime for each grid configuration at 
+//*** different axion masses 
+//*** 
+//*** Mesh Map Definitions in mm:
+//*** (20, 20, 100), (30, 30, 150), (50, 50, 250), (50, 50, 500)
+//***
+//*** Arguments by default are (in order):
+//*** - nData: Number of data points to generate (default: 50).
+//*** - Ea: Axion energy in keV (default: 4.2).
+//*** - gasName: Gas name (default: "He").
+//*** - m1: Axion mass in eV (default: 0.01).
+//*** - m2: Axion mass in eV (default: 0.1)
+//***
+//*** Dependencies:
+//*** The generated data are the results from `TRestAxionMagneticField::ReMap'. and 
+//*** `TRestAxionField::GammaTransmissionFieldMapProbability'
+//***
+//*** Author: Raul Ena
+//*******************************************************************************************************
