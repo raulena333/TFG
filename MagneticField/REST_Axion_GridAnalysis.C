@@ -27,7 +27,7 @@
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - m1: Axion mass in eV (default: 0.01).
-//*** - m2: Axion mass in eV (default: 0.1)
+//*** - m2: Axion mass in eV (default: 0.3)
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::ReMap'. and 
@@ -50,7 +50,7 @@ struct FieldTrack {
 
 constexpr bool kDebug = true;
 
-Int_t REST_Axion_GridAnalysis(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.01, Double_t m2 = 0.1) {
+Int_t REST_Axion_GridAnalysis(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.01, Double_t m2 = 0.3) {
     // Mesh Map Definitions in mm
     std::vector<TVector3> meshSizes = {
         TVector3(20, 20, 100),
@@ -122,7 +122,7 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 100, Double_t Ea = 4.2, std::string 
                 }
                 for(auto& field : fields) {
                     auto start_time = std::chrono::high_resolution_clock::now();
-                    std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.1, 100, 20);
+                    std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.3, 100, 20);
                     auto end_time = std::chrono::high_resolution_clock::now();
                     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
