@@ -20,10 +20,10 @@
 //*** different axion masses 
 //*** 
 //*** Mesh Map Definitions in mm:
-//*** (20, 20, 100), (30, 30, 150), (50, 50, 250), (50, 50, 500)
+//*** (10, 10, 50), (20, 20, 100), (30, 30, 150), (50, 50, 250), (50, 50, 500)
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 100).
+//*** - nData: Number of data points to generate (default: 50).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - m1: Axion mass in eV (default: 0.01).
@@ -50,9 +50,10 @@ struct FieldTrack {
 
 constexpr bool kDebug = true;
 
-Int_t REST_Axion_GridAnalysis(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.01, Double_t m2 = 0.3) {
+Int_t REST_Axion_GridAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.01, Double_t m2 = 0.3) {
     // Mesh Map Definitions in mm
     std::vector<TVector3> meshSizes = {
+        TVector3(10, 10, 50),
         TVector3(20, 20, 100),
         TVector3(30, 30, 150),
         TVector3(50, 50, 250),
@@ -97,8 +98,9 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 100, Double_t Ea = 4.2, std::string 
         for (auto& field : fields) {
             if (gas != nullptr) 
                 field.second.axionField->AssignBufferGas(gas.get());
-            for (size_t n = 0; n < field.second.magneticField->GetNumberOfVolumes(); n++) {
-                field.second.magneticField->ReMap(n, field.second.mapSize);
+            if(field.second.mapSize.X() != 10){
+                for (size_t n = 0; n < field.second.magneticField->GetNumberOfVolumes(); n++) 
+                    field.second.magneticField->ReMap(n, field.second.mapSize);
             }
             field.second.magneticField->SetTrack(position, direction);
             field.second.axionField->AssignMagneticField(field.second.magneticField.get());
