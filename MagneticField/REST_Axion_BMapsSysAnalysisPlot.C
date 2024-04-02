@@ -159,7 +159,6 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
 
         std::vector<TGraphErrors*> graphs2;
         TLegend* legendM = new TLegend(0.7, 0.7, 0.9, 0.9);
-        colorIndex = 1;
         for (auto& field : fields) {
             if (field.first == "Mentisk" || field.first == "MentiskCut") {
                 TGraphErrors* graph = new TGraphErrors(nData, &mass[0], &field.second.probability[0], 0, &field.second.error[0]);
