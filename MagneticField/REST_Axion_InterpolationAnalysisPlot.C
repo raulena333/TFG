@@ -53,7 +53,7 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 5, Double_t Ea = 4.2, std::string gasName = "He", 
+Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", 
                     Double_t mi = 0., Double_t mf = 0.5, Double_t accuracy = 0.52, Bool_t useLogScale =  false){
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
