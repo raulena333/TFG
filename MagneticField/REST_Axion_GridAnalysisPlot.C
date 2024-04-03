@@ -7,6 +7,7 @@
 #include <iomanip> 
 #include <sstream> 
 #include <memory>
+#include <filesystem>
 
 #include <TCanvas.h>
 #include <TVector3.h>
@@ -50,7 +51,8 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0., Double_t mf = 0.5) {
+Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", 
+                                  Double_t mi = 0., Double_t mf = 0.5, bool useLogScale = false) {
     // Mesh Map Definitions in mm
     std::vector<TVector3> meshSizes = {
         TVector3(10,10,50),
@@ -168,6 +170,10 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::str
             graphsProb[0]->GetYaxis()->SetLabelSize(0.03);
             legendProb->Draw();
 
+            // Set logarithmic scale if required
+            if (useLogScale)
+                canvasProb->SetLogy();
+
             // Create the canvas to plot the runTime of each grid
             TCanvas *canvasRun = new TCanvas((fieldName + "_MassRunTime").c_str(), (fieldName + "_MassRun").c_str(), 850, 673);
             canvasRun->cd();
@@ -205,14 +211,16 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::str
 
             if (kSave) {
                 std::string folder = "GridAnalysis/";
+                if (!std::filesystem::exists(folder)) {
+                    std::filesystem::create_directory(folder);
+                }
+
                 std::string fileNameProb = fieldName + "_ProbabilityGrid.png";
                 std::string fileNameRun = fieldName + "_RunTimeGrid.png";
                 canvasProb->SaveAs((folder + fileNameProb).c_str());
                 canvasRun->SaveAs((folder + fileNameRun).c_str());
             }
         }
-
-
     }
     return 0;
 }
