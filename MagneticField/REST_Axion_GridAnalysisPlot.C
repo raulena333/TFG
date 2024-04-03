@@ -201,7 +201,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::str
             }
 
             graphsRun[0]->SetTitle("Axion Mass vs RunTime");
-            graphsRun[0]->GetYaxis()->SetTitle("RunTime");
+            graphsRun[0]->GetYaxis()->SetTitle("RunTime (ms)");
             graphsRun[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
             graphsRun[0]->GetXaxis()->SetTitleSize(0.03);
             graphsRun[0]->GetYaxis()->SetTitleSize(0.03);
