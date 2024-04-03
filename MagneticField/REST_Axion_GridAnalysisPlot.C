@@ -210,13 +210,13 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::str
             legendRun->Draw();
 
             if (kSave) {
-                std::string folder = "GridAnalysis/";
+                std::string folder = "InterpolationAnalysis/";
                 if (!std::filesystem::exists(folder)) {
                     std::filesystem::create_directory(folder);
                 }
 
-                std::string fileNameProb = fieldName + "_ProbabilityGrid.png";
-                std::string fileNameRun = fieldName + "_RunTimeGrid.png";
+                std::string fileNameProb = fieldName + "_ProbabilityInterpolation.png";
+                std::string fileNameRun = fieldName + "_RunTimeInterpolation.png";
                 canvasProb->SaveAs((folder + fileNameProb).c_str());
                 canvasRun->SaveAs((folder + fileNameRun).c_str());
             }
