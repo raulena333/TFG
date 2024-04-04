@@ -41,13 +41,14 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 10, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0., Double_t mf = 0.3, Bool_t useLogScale = false){
+Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 1, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0., Double_t mf = 0.3, Bool_t useLogScale = false){
 
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
     Double_t gasDensity = 2.9836e-10;
     TVector3 position(-5, 5, -9000);
-    TVector3 direction = (position - TVector3(5, -5 , 9000));
+    TVector3 fPosition(5, -5 , 9000);
+    TVector3 direction = (position - fPosition).Unit();
     std::vector<Double_t> mass;
 
     for(Int_t j = 0; j < nData; j++) {
@@ -65,6 +66,12 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 10, Double_t Ea = 4.2, std::
 
         //Assign bufferGas and magneticField
         magneticField->SetTrack(position, direction);
+
+        auto start_timeM = std::chrono::high_resolution_clock::now();
+        std::vector<Double_t> magneticValues = magneticField->GetTransversalComponentAlongPath(position, fPosition, 10);
+        auto end_timeM = std::chrono::high_resolution_clock::now();
+        auto durationM = std::chrono::duration_cast<std::chrono::microseconds>(end_timeM - start_timeM);
+
         auto ax = std::make_unique<TRestAxionField>();
         std::unique_ptr<TRestAxionBufferGas> gas;
         if (!gasName.empty()) {
@@ -95,25 +102,25 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 10, Double_t Ea = 4.2, std::
                 std::cout << "Integration using GSL" << std::endl;
                 std::cout << "Probability: " << probFieldGSL.first << std::endl;
                 std::cout << "Error: " << probFieldGSL.second << std::endl;
-                std::cout << "Runtime: (μs) " << durationGSL.count() << std::endl;
+                std::cout << "Runtime (μs): " << durationGSL.count() << std::endl;
                 std::cout << std::endl;
             }
 
             //Standard Integration
             auto start_timeStandard = std::chrono::high_resolution_clock::now();
-            Double_t probFieldStandard = ax->GammaTransmissionProbability(ma);
+            Double_t probFieldStandard = ax->GammaTransmissionProbability(magneticValues, 10, Ea, ma);
             auto end_timeStandard = std::chrono::high_resolution_clock::now();
             auto durationStandard = std::chrono::duration_cast<std::chrono::microseconds>(end_timeStandard - start_timeStandard);
 
             integrations["Standard-Integral"].probability.push_back(probFieldStandard);
             integrations["Standard-Integral"].error.push_back(0);
-            integrations["Standard-Integral"].timeComputation.push_back(durationStandard.count());
+            integrations["Standard-Integral"].timeComputation.push_back(durationStandard.count() + durationM.count());
 
             if(kDebug){
                 std::cout << "Integration using standard" << std::endl;
                 std::cout << "Probability: " << probFieldStandard << std::endl;
                 std::cout << "Error: " << 0 << std::endl; // No error in standard integration
-                std::cout << "Runtime: (μs)" << durationStandard.count() << std::endl;
+                std::cout << "Runtime (μs): " << durationStandard.count() << std::endl;
                 std::cout << std::endl;
             }
         }
@@ -124,7 +131,7 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 10, Double_t Ea = 4.2, std::
             canvasProb->cd();
 
             Int_t colorIndex = 1;
-            TLegend *legendProb = new TLegend(0.1, 0.7, 0.3, 0.9);
+            TLegend *legendProb = new TLegend(0.1, 0.8, 0.3, 0.9);
             std::vector<TGraph*> graphsProb;
             for (const auto &integration : integrations) {
                 TGraph *graph = new TGraphErrors(mass.size(), mass.data(), integration.second.probability.data());
@@ -159,7 +166,7 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 10, Double_t Ea = 4.2, std::
             canvasRun->cd();
 
             colorIndex = 1;
-            TLegend *legendRun = new TLegend(0.1, 0.7, 0.3, 0.9);
+            TLegend *legendRun = new TLegend(0.1, 0.8, 0.3, 0.9);
             std::vector<TGraph*> graphsRun;
 
             for (const auto &integration : integrations) {
@@ -198,8 +205,13 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 10, Double_t Ea = 4.2, std::
                 canvasProb->SaveAs((folder + fileNameProb).c_str());
                 canvasRun->SaveAs((folder + fileNameRun).c_str());
             }
+
+        delete canvasProb;
+        delete canvasRun;
+        delete legendProb;
+        delete legendRun;
+
         }
     }
-
     return 0;
 }
