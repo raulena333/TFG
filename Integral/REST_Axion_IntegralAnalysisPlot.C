@@ -23,8 +23,8 @@
 //*** Arguments by default are (in order):
 //*** - nData: Number of data points to generate (default: 100).
 //*** - Ea: Axion energy in keV (default: 4.2).
-//*** - mi: Initial axion mass in eV (default: 0.).
-//*** - mf: Final axion mass in eV (default: 0.35).
+//*** - mi: Initial axion mass in eV (default: 0.5).
+//*** - mf: Final axion mass in eV (default: 0.5).
 //*** - useLogScale: Bool to set the y-axis to log scale for plotting (default: false).
 //*** - dL: Length of the integration step in mm (default: 10).
 //***
@@ -61,6 +61,12 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
     }
 
     for(const auto &fieldName : fieldNames){
+        // CHANGE ACCURACY OF 2ND MAP
+        Double_t accuracy;
+        if(fieldName == "babyIAXO_2024_cutoff")
+            accuracy = 0.1;
+        else
+            accuracy = 0.25;
 
         std::map<std::string, TypeIntegration> integrations = {
             {"Standard-Integral", {}},
@@ -95,7 +101,7 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
             }
             //GSL Integration
             auto start_timeGSL = std::chrono::high_resolution_clock::now();
-            std::pair<Double_t, Double_t> probFieldGSL = ax->GammaTransmissionFieldMapProbability(Ea, ma, 0.1, 100, 20);
+            std::pair<Double_t, Double_t> probFieldGSL = ax->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, 100, 20);
             auto end_timeGSL = std::chrono::high_resolution_clock::now();
             auto durationGSL = std::chrono::duration_cast<std::chrono::microseconds>(end_timeGSL - start_timeGSL);
 
