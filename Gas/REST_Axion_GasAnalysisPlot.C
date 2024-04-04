@@ -29,7 +29,7 @@
 //*** - nData: Number of data points to generate (default: 100).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - mi: Initial axion mass in eV (default: 0.).
-//*** - mf: Final axion mass in eV (default: 0.4).
+//*** - mf: Final axion mass in eV (default: 0.2).
 //*** - useLogScale. Bool to set the y-axis to log scale for plotting (default: false).
 //***
 //*** Dependencies:
@@ -53,11 +53,11 @@ struct GasTrack {
     constexpr bool kPlot = true;
     constexpr bool kSave = true;
 
-Int_t REST_Axion_GasAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, Double_t mi = 0., Double_t mf = 0.35, Bool_t useLogScale = false) {
+Int_t REST_Axion_GasAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, Double_t mi = 0., Double_t mf = 0.2, Bool_t useLogScale = false) {
 
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
-    Double_t gasDensity = 2.6e-10;
+    Double_t gasDensity = 2.6e-11;
     TVector3 position(-5, 5, -9000);
     TVector3 direction = (position - TVector3(5, -5 , 9000));
     std::vector<Double_t> mass;

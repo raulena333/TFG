@@ -26,8 +26,8 @@
 //*** - nData: Number of data points to generate (default: 5).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - m1: Axion mass in eV close to resonance Vaccum (default: 0.01).
-//*** - m2: Axion mass in eV close to resonance for density of He (default: 0.2).
-//*** - m3: Axion mass in eV random in between (default: 0.35).
+//*** - m2: Axion mass in eV close to resonance for density of He (default: 0.1).
+//*** - m3: Axion mass in eV random in between (default: 0.15).
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::SetTrack`,
@@ -52,13 +52,13 @@ struct GasTrack {
 
 constexpr bool kDebug = true;
 
-Int_t REST_Axion_GasAnalysis(Int_t nData = 5, Double_t Ea = 4.2, Double_t m1 = 0.01, Double_t m2 = 0.2, Double_t m3 = 0.351) {
+Int_t REST_Axion_GasAnalysis(Int_t nData = 5, Double_t Ea = 4.2, Double_t m1 = 0.01, Double_t m2 = 0.1, Double_t m3 = 0.15) {
     // Create Variables
     const char* cfgFileName = "fields.rml";
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
     TVector3 position(-5, 5, -9000);
     TVector3 direction = (position - TVector3(5, -5 , 9000));
-    Double_t gasDensity = 2.9868e-10;   
+    Double_t gasDensity = 2.6e-11;   
 
     // Loop for both magnetic field maps
     for (const auto& fieldName : fieldNames) {
