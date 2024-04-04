@@ -3,6 +3,12 @@
 #include <vector>
 #include <fstream>
 #include <map>
+#include <numeric>
+#include <iomanip>
+#include <sstream>
+#include <memory>
+#include <filesystem>
+
 #include <TCanvas.h>
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
@@ -20,10 +26,11 @@
 //*** - '': Vacuum.
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 50).
+//*** - nData: Number of data points to generate (default: 100).
 //*** - Ea: Axion energy in keV (default: 4.2).
-//*** - mi: Initial axion mass in eV (default: -0.1).
-//*** - mf: Final axion mass in eV (default: 0.1).
+//*** - mi: Initial axion mass in eV (default: 0.).
+//*** - mf: Final axion mass in eV (default: 0.4).
+//*** - useLogScale. Bool to set the y-axis to log scale for plotting (default: false).
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::SetTrack`,
@@ -32,159 +39,165 @@
 //*** Author: Raul Ena
 //*******************************************************************************************************
 
-struct gasTrack
-{
-    TRestAxionField *axionField;
-    TRestAxionBufferGas *gas;
+struct GasTrack {
+    std::unique_ptr<TRestAxionField> axionField;
+    std::unique_ptr<TRestAxionBufferGas> gas;
     std::string gasName;
 
     std::vector<double> probability;
     std::vector<double> error;
     std::vector<double> timeComputation;
-
 };
 
-Int_t REST_Axion_GasAnalysisMassProb(Int_t nData = 50, Double_t Ea = 4.2, Double_t mi = -0.1, Double_t mf = 0.1)
-{
+    constexpr bool kDebug = true;
+    constexpr bool kPlot = true;
+    constexpr bool kSave = true;
 
-    Bool_t fDebug = true;
-    Bool_t fPlot = true;
-    Bool_t fSave = true;
+Int_t REST_Axion_GasAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, Double_t mi = 0., Double_t mf = 0.35, Bool_t useLogScale = false) {
 
     // Create Variables
-    std::string fieldName = "babyIAXO_2024_cutoff";
-    Double_t gasDensity = 2.6e-9;
-    TVector3 position(-100, -100, -11000);
-    TVector3 direction(0.01, 0.01, 1);
+    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
+    Double_t gasDensity = 2.6e-10;
+    TVector3 position(-5, 5, -9000);
+    TVector3 direction = (position - TVector3(5, -5 , 9000));
     std::vector<Double_t> mass;
 
-    // Create magnetic field
-    TRestAxionMagneticField *magneticField = new TRestAxionMagneticField("fields.rml", fieldName);
-
-    // Create gas tracks
-    std::map<std::string, gasTrack> gasTracks = {
-        {"He-Gas", {new TRestAxionField(), new TRestAxionBufferGas(), "He"}},
-        {"Vacuum", {new TRestAxionField(), nullptr, ""}}
-    };
-
-    // Assign gas and magnetic field to each gas track
-    for (auto &track : gasTracks)
-    {
-        if (track.second.gas != nullptr)
-        {
-            track.second.gas->SetGasDensity(track.second.gasName, gasDensity);
-            track.second.axionField->AssignBufferGas(track.second.gas);
-        }
-        track.second.axionField->AssignMagneticField(magneticField);
-        magneticField->SetTrack(position, direction);
+    for(Int_t j = 0; j < nData; j++) {
+        mass.push_back(mi + j * (mf - mi) / nData);
     }
 
-    // Simulation loop
-    Double_t step = (mf - mi) / nData;
-    for (unsigned i = 0; i < nData; i++)
-    {
-        Double_t ma = (mi + i * step);
-        for (auto &track : gasTracks)
-        {
-            auto start_time = std::chrono::high_resolution_clock::now();
-            std::pair<Double_t, Double_t> probField = track.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.1, 100, 20);
-            auto end_time = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+    // Loop for both magnetic field maps
+    for (const auto& fieldName : fieldNames) {
+        // Create magnetic field
+        auto magneticField = std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName);
 
-            track.second.probability.push_back(probField.first);
-            track.second.error.push_back(probField.second);
-            track.second.timeComputation.push_back(duration.count());
+        // Create gas tracks
+        std::map<std::string, GasTrack> gasTracks;
+        gasTracks["He-Gas"] = {std::make_unique<TRestAxionField>(), std::make_unique<TRestAxionBufferGas>(), "He"};
+        gasTracks["Vacuum"] = {std::make_unique<TRestAxionField>(), nullptr, ""};
 
-            if (fDebug)
-            {
+        // Assign gas and magnetic field to axion field to each gas track
+        for (auto &track : gasTracks) {
+            if (track.second.gas != nullptr) {
+                track.second.gas->SetGasDensity(track.second.gasName, gasDensity);
+                track.second.axionField->AssignBufferGas(track.second.gas.get());
+            }
+            track.second.axionField->AssignMagneticField(magneticField.get());
+            magneticField->SetTrack(position, direction);
+        }
+
+        // Simulation loop
+        for (const auto& ma : mass) {
+            if(kDebug){
+                std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                 std::cout << "Mass: " << ma << std::endl;
-                std::cout << track.first << std::endl;
-                std::cout << "Probability: " << probField.first << std::endl;
-                std::cout << "Error: " << probField.second << std::endl;
-                std::cout << "Runtime: " << duration.count() << " ms" << std::endl;
+                std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                 std::cout << std::endl;
+            }
+            for (auto &track : gasTracks){
+                auto start_time = std::chrono::high_resolution_clock::now();
+                std::pair<Double_t, Double_t> probField = track.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.1, 100, 20);
+                auto end_time = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+
+                track.second.probability.push_back(probField.first);
+                track.second.error.push_back(probField.second);
+                track.second.timeComputation.push_back(duration.count());
+
+                if (kDebug) {
+                    std::cout << "+--------------------------------------------------------------------------+" << std::endl;
+                    std::cout << track.first << std::endl;
+                    std::cout << "Probability: " << probField.first << std::endl;
+                    std::cout << "Error: " << probField.second << std::endl;
+                    std::cout << "Runtime (ms): " << duration.count() << std::endl;
+                    std::cout << "+--------------------------------------------------------------------------+" << std::endl;
+                    std::cout << std::endl;
+                }
             }
         }
 
-        mass.push_back(ma);
-    }
+        /// PLOT ///
+        if (kPlot) {
+            // Create TCanvas for plotting probability vs. mass
+            TCanvas *canvasProb = new TCanvas((fieldName + "_MassProbability").c_str(), (fieldName + "_MassProb").c_str(), 850, 673);
+            canvasProb->cd();
 
-    /// PLOT ///
-    if (fPlot) {
-        // Create TCanvas for plotting probability vs. mass
-        TCanvas* canvas1 = new TCanvas("c1", "c1", 900, 450);
-        canvas1->Divide(2, 1);
+            Int_t colorIndex = 1;
+            TLegend *legendProb = new TLegend(0.1, 0.7, 0.3, 0.9);
+            std::vector<TGraphErrors*> graphsProb;
+            for (const auto &track : gasTracks) {
+                TGraphErrors *graph = new TGraphErrors(mass.size(), mass.data(), track.second.probability.data(), nullptr, track.second.error.data());
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
+                if (colorIndex == 1) {
+                    graph->Draw("ACP");
+                } else {
+                    graph->Draw("Same");
+                }
+                legendProb->AddEntry(graph, track.first.c_str(), "l");
+                colorIndex++;
 
-        // Plot the probability vs. mass for each FieldTrack
-        Int_t i = 1;
-        for (auto& track : gasTracks) {
-            canvas1->cd(i);
+                graphsProb.push_back(graph);
+            }
 
-            TGraphErrors* graph = new TGraphErrors(nData, &mass[0], &track.second.probability[0], nullptr, &track.second.error[0]);
-            graph->SetLineColor(i);
-            graph->SetLineWidth(1);
+            graphsProb[0]->SetTitle("Axion Mass vs Probability");
+            graphsProb[0]->GetYaxis()->SetTitle("Probability");
+            graphsProb[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
+            graphsProb[0]->GetXaxis()->SetTitleSize(0.03);
+            graphsProb[0]->GetYaxis()->SetTitleSize(0.03);
+            graphsProb[0]->GetXaxis()->SetLabelSize(0.03);
+            graphsProb[0]->GetYaxis()->SetLabelSize(0.03);
+            legendProb->Draw();
 
-            graph->SetTitle((track.first + " Probability vs. Mass").c_str());
-            graph->GetXaxis()->SetTitle("Mass (eV)");
-            graph->GetYaxis()->SetTitle("Probability");
+            // Set logarithmic scale if required
+            if (useLogScale)
+                canvasProb->SetLogy();
 
-            graph->Draw("ACP");
-            i++;
+
+            // Create the canvas to plot the runTime of each gas track
+            TCanvas *canvasRun = new TCanvas((fieldName + "_MassRunTime").c_str(), (fieldName + "_MassRun").c_str(), 850, 673);
+            canvasRun->cd();
+
+            colorIndex = 1;
+            TLegend *legendRun = new TLegend(0.1, 0.7, 0.3, 0.9);
+            std::vector<TGraph*> graphsRun;
+
+            for (const auto &track : gasTracks) {
+                TGraph *graph = new TGraph(mass.size(), mass.data(), track.second.timeComputation.data());
+                graph->SetLineColor(colorIndex);
+                graph->SetLineWidth(1);
+                if (colorIndex == 1) {
+                    graph->Draw("ACP");
+                } else {
+                    graph->Draw("Same");
+                }
+                legendRun->AddEntry(graph, track.first.c_str(), "l");
+                colorIndex++;
+
+                graphsRun.push_back(graph);
+            }
+
+            graphsRun[0]->SetTitle("Axion Mass vs RunTime");
+            graphsRun[0]->GetYaxis()->SetTitle("RunTime (ms)");
+            graphsRun[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
+            graphsRun[0]->GetXaxis()->SetTitleSize(0.03);
+            graphsRun[0]->GetYaxis()->SetTitleSize(0.03);
+            graphsRun[0]->GetXaxis()->SetLabelSize(0.03);
+            graphsRun[0]->GetYaxis()->SetLabelSize(0.03);
+            legendRun->Draw();
+
+            if (kSave) {
+                std::string folder = "GasAnalysis/";
+                if (!std::filesystem::exists(folder)) {
+                    std::filesystem::create_directory(folder);
+                }
+
+                std::string fileNameProb = fieldName + "_ProbabilityGas.png";
+                std::string fileNameRun = fieldName + "_RunTimeGas.png";
+                canvasProb->SaveAs((folder + fileNameProb).c_str());
+                canvasRun->SaveAs((folder + fileNameRun).c_str());
+            }
         }
-
-        // Create TCanvas for plotting runtime vs. mass
-        TCanvas* canvas2 = new TCanvas("c2", "c2", 800, 650);
-        TMultiGraph* mg0 = new TMultiGraph();
-
-        // Create a legend for the graphs
-        TLegend* legend0 = new TLegend(0.7, 0.7, 0.9, 0.9);
-
-        // Plot the runtime vs. mass for each FieldTrack
-        Int_t colorIndex = 1;
-        for (auto& track : gasTracks) {
-            TGraph* graph = new TGraph(nData, &mass[0], &track.second.timeComputation[0]);
-            graph->SetLineColor(colorIndex);
-            graph->SetLineWidth(1);
-
-            // Add the graph to the TMultiGraph
-            mg0->Add(graph);
-
-            // Add entry to the legend
-            legend0->AddEntry(graph, (track.first).c_str(), "l");
-
-            colorIndex++;
-        }
-
-        // Set titles and axes labels
-        mg0->SetTitle("Runtime vs. Mass");
-        mg0->GetXaxis()->SetTitle("Mass (eV)");
-        mg0->GetYaxis()->SetTitle("Runtime (ms)");
-        mg0->GetXaxis()->SetTitleSize(0.04);
-        mg0->GetXaxis()->SetLabelSize(0.03);
-        mg0->GetYaxis()->SetTitleSize(0.04);
-        mg0->GetYaxis()->SetLabelSize(0.03);
-
-        // Draw the TMultiGraph
-        canvas2->cd();
-        mg0->Draw("ACP");
-
-        // Add the legend
-        legend0->Draw();
-
-        if (fSave) {
-            canvas1->SaveAs("ProbabilityGas.png");
-            canvas2->SaveAs("RuntimeGas.png");
-        }
-    }
-
-
-    // Clean up memory
-    delete magneticField;
-    for (auto &track : gasTracks)
-    {
-        delete track.second.axionField;
-        if (track.second.gas != nullptr)
-            delete track.second.gas;
     }
 
     return 0;
