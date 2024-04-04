@@ -16,17 +16,21 @@
 
 //*******************************************************************************************************
 //*** Description:
+//*** This function performs integral analysis for axion field simulations. It calculates the probability
+//*** of axion-gamma transmission and the corresponding error, as well as the computation time for each
+//*** integration method. The analysis is performed for a range of axion masses.
 //*** 
 //*** Arguments by default are (in order):
 //*** - nData: Number of data points to generate (default: 100).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - mi: Initial axion mass in eV (default: 0.).
-//*** - mf: Final axion mass in eV (default: 0.3).
-//*** - useLogScale. Bool to set the y-axis to log scale for plotting (default: false).
+//*** - mf: Final axion mass in eV (default: 0.35).
+//*** - useLogScale: Bool to set the y-axis to log scale for plotting (default: false).
+//*** - dL: Length of the integration step in mm (default: 10).
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::SetTrack`,
-//*** `TRestAxionField::GammaTransmissionFieldMapProbability` and `TRestAxionBufferGas::SetGasDensity`.
+//*** `TRestAxionField::GammaTransmissionFieldMapProbability`, and `TRestAxionBufferGas::SetGasDensity`.
 //***
 //*** Author: Raul Ena
 //*******************************************************************************************************
@@ -41,7 +45,8 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 1, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0., Double_t mf = 0.3, Bool_t useLogScale = false){
+Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0., 
+            Double_t mf = 0.35, Bool_t useLogScale = false, Double_t dL = 10){
 
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
@@ -68,7 +73,7 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 1, Double_t Ea = 4.2, std::s
         magneticField->SetTrack(position, direction);
 
         auto start_timeM = std::chrono::high_resolution_clock::now();
-        std::vector<Double_t> magneticValues = magneticField->GetTransversalComponentAlongPath(position, fPosition, 10);
+        std::vector<Double_t> magneticValues = magneticField->GetTransversalComponentAlongPath(position, fPosition, dL);
         auto end_timeM = std::chrono::high_resolution_clock::now();
         auto durationM = std::chrono::duration_cast<std::chrono::microseconds>(end_timeM - start_timeM);
 
@@ -108,7 +113,7 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 1, Double_t Ea = 4.2, std::s
 
             //Standard Integration
             auto start_timeStandard = std::chrono::high_resolution_clock::now();
-            Double_t probFieldStandard = ax->GammaTransmissionProbability(magneticValues, 10, Ea, ma);
+            Double_t probFieldStandard = ax->GammaTransmissionProbability(magneticValues, dL, Ea, ma);
             auto end_timeStandard = std::chrono::high_resolution_clock::now();
             auto durationStandard = std::chrono::duration_cast<std::chrono::microseconds>(end_timeStandard - start_timeStandard);
 
