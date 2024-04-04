@@ -23,11 +23,11 @@
 //*** - '': Vacuum.
 //***
 //*** Default Arguments:
-//*** - nData: Number of data points to generate (default: 2).
+//*** - nData: Number of data points to generate (default: 5).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - m1: Axion mass in eV close to resonance Vaccum (default: 0.01).
-//*** - m2: Axion mass in eV close to resonance for density of He (default: 0.35).
-//*** - m3: Axion mass in eV random in between (default: 0.1).
+//*** - m2: Axion mass in eV close to resonance for density of He (default: 0.2).
+//*** - m3: Axion mass in eV random in between (default: 0.35).
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::SetTrack`,
@@ -52,7 +52,7 @@ struct GasTrack {
 
 constexpr bool kDebug = true;
 
-Int_t REST_Axion_GasAnalysis(Int_t nData = 25, Double_t Ea = 4.2, Double_t m1 = 0.01, Double_t m2 = 0.351, Double_t m3 = 0.1) {
+Int_t REST_Axion_GasAnalysis(Int_t nData = 5, Double_t Ea = 4.2, Double_t m1 = 0.01, Double_t m2 = 0.2, Double_t m3 = 0.351) {
     // Create Variables
     const char* cfgFileName = "fields.rml";
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
@@ -67,8 +67,9 @@ Int_t REST_Axion_GasAnalysis(Int_t nData = 25, Double_t Ea = 4.2, Double_t m1 = 
 
         // Create gas tracks
         std::map<std::string, GasTrack> gasTracks;
-        gasTracks["He-Gas"] = {std::make_unique<TRestAxionField>(), std::make_unique<TRestAxionBufferGas>(), "He"};
-        gasTracks["Vacuum"] = {std::make_unique<TRestAxionField>(), nullptr, ""};
+
+        gasTracks.insert(std::make_pair("He-Gas", GasTrack{std::make_unique<TRestAxionField>(), std::make_unique<TRestAxionBufferGas>(), "He"}));
+        gasTracks.insert(std::make_pair("Vacuum", GasTrack{std::make_unique<TRestAxionField>(), nullptr, ""}));
 
         // Assign gas and magnetic field to axion field to each gas track
         for (auto &track : gasTracks) {
@@ -81,7 +82,7 @@ Int_t REST_Axion_GasAnalysis(Int_t nData = 25, Double_t Ea = 4.2, Double_t m1 = 
         }
 
         // Simulation loop
-        for (const auto& ma : {m1, m2, m3}) {
+        for (const auto &ma : {m1, m2, m3}) {
             if (kDebug) {
                 std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                 std::cout << "Mass: " << ma << std::endl;
@@ -99,7 +100,7 @@ Int_t REST_Axion_GasAnalysis(Int_t nData = 25, Double_t Ea = 4.2, Double_t m1 = 
                 // Iterate over each gas
                 for (auto &track : gasTracks) {   
                     auto start_time = std::chrono::high_resolution_clock::now();
-                    std::pair<double, double> probField = track.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.1, 100, 20);
+                    std::pair<double, double> probField = track.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.1, 200, 20);
                     auto end_time = std::chrono::high_resolution_clock::now();
                     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
