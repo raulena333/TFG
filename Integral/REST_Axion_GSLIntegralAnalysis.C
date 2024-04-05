@@ -10,18 +10,26 @@
 #include <filesystem>
 
 #include <TCanvas.h>
-#include <TH2D.h>
+#include <TH3D.h>
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
 #include "TRestAxionField.h"
 
 //*******************************************************************************************************
 //*** Description:
-
+//*** This function performs an integral analysis using GSL integration for a given set of parameters.
+//*** It calculates the runtime, probability, and error for each combination of parameters and stores
+//*** the results in 2D histograms. It also optionally saves the histograms as images.
+//***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 50).
+//*** - nData: Number of data points to generate (default: 20).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Name of the buffer gas (default: "He").
+//*** - m: Axion mass (default: 0.25).
+//*** - num_intervals_max: Maximum number of intervals for GSL integration (default: 500).
+//*** - num_intervals_min: Minimum number of intervals for GSL integration (default: 50).
+//*** - qawo_levels_max: Maximum number of QAWO levels for GSL integration (default: 150).
+//*** - qawo_levels_min: Minimum number of QAWO levels for GSL integration (default: 10).
 
 //***
 //*** Dependencies:
@@ -50,10 +58,10 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::s
     std::vector<Int_t> qawo_levels;
 
     for (Int_t j = 0; j < nData; j++) {
-        Int_t intervals = num_intervals_min + j * (num_intervals_max - num_intervals_min) / nData
+        Int_t intervals = num_intervals_min + j * (num_intervals_max - num_intervals_min) / nData;
         num_intervals.push_back(intervals);
         Int_t level = qawo_levels_min + j * (qawo_levels_max - qawo_levels_min) / nData;
-        dLvec.push_back(level);
+        qawo_levels.push_back(level);
     }
 
     std::vector<Double_t> mass;
@@ -93,13 +101,13 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::s
             auto canvasError = std::make_unique<TCanvas>((fieldName + "_Error").c_str(), (fieldName + "_Error").c_str(), 850, 673);
 
             // Create 2D histograms
-            auto histRuntime = std::make_unique<TH3D>("histRuntime", "Runtime vs Num_intervals vs Qawo_levels",
+            auto histRuntime = std::make_unique<TH2D>("histRuntime", "Runtime vs Num_intervals vs Qawo_levels",
                                                        nData, num_intervals_min, num_intervals_max,
                                                        nData, qawo_levels_min, qawo_levels_max);
-            auto histProbability = std::make_unique<TH3D>("histProbability", "Probability vs  Num_intervals vs Qawo_levels",
+            auto histProbability = std::make_unique<TH2D>("histProbability", "Probability vs  Num_intervals vs Qawo_levels",
                                                            nData, num_intervals_min, num_intervals_max,
                                                            nData, qawo_levels_min, qawo_levels_max);
-            auto histError = std::make_unique<TH3D>("histError", "Error vs  Num_intervals vs Qawo_levels",
+            auto histError = std::make_unique<TH2D>("histError", "Error vs  Num_intervals vs Qawo_levels",
                                                      nData, num_intervals_min, num_intervals_max,
                                                      nData, qawo_levels_min, qawo_levels_max);
 
@@ -120,7 +128,7 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::s
 
                     // GSL Integration
                     auto start_time = std::chrono::high_resolution_clock::now();
-                    std::pair<Double_t, DOuble_t> probField = axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.1, num_interval, qawo_level);
+                    std::pair<Double_t, Double_t> probField = axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.1, num_interval, qawo_level);
                     auto end_time = std::chrono::high_resolution_clock::now();
                     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
@@ -135,7 +143,6 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::s
                     histRuntime->Fill(num_interval, qawo_level, duration.count());
                     histProbability->Fill(num_interval, qawo_level, probField.first);
                     histError->Fill(num_interval, qawo_level, probField.second);
-
                 }
             }
 
@@ -173,7 +180,7 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::s
             histError->GetXaxis()->SetTitleSize(0.03);
             histError->GetXaxis()->SetTitleFont(22); 
             histError->GetYaxis()->SetLabelSize(0.03); 
-            histError>GetYaxis()->SetLabelFont(22);
+            histError->GetYaxis()->SetLabelFont(22);
             histError->GetYaxis()->SetTitleSize(0.03);
             histError->GetYaxis()->SetTitleFont(22); 
             histError->GetZaxis()->SetLabelSize(0.02);
@@ -189,10 +196,10 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::s
 
                 std::string fileNameRuntime = fieldName + std::to_string(ma) + "_RuntimeGSL.png";
                 std::string fileNameProbability = fieldName +  std::to_string(ma) + "_ProbabilityGSL.png";
-                std::string fileNameError = fieldName +  std::to_string(ma) + "_ProbabilityGSL.png"
+                std::string fileNameError = fieldName +  std::to_string(ma) + "_ErrorGSL.png"; 
                 canvasRuntime->SaveAs((folder + fileNameRuntime).c_str());
                 canvasProbability->SaveAs((folder + fileNameProbability).c_str());
-                canvasError->SaveAs((folder + fileNameProbability).c_str());
+                canvasError->SaveAs((folder + fileNameError).c_str());
             } 
         }
     }
