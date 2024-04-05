@@ -17,12 +17,18 @@
 
 //*******************************************************************************************************
 //*** Description:
+//*** This function performs standard integral analysis for axion experiments. It calculates the runtime and probability values
+//*** for different axion masses and integration lengths (dL). The results are plotted on histograms and graphs for visualization.
+//*** The final runtime of the analysis is also recorded and saved to an output file.
 //*** 
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 100).
+//*** - nData: Number of data points to generate (default: 50).
 //*** - Ea: Axion energy in keV (default: 4.2).
+//*** - gasName: Name of the buffer gas (default: "He").
 //*** - mi: Initial axion mass in eV (default: 0.3).
 //*** - mf: Final axion mass in eV (default: 0.4).
+//*** - dLinitial: Initial integration length (default: 1).
+//*** - dLfinal: Final integration length (default: 500).
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::GetTransversalComponentAlongPath`,
@@ -35,7 +41,7 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 1, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.3, 
+Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.3, 
             Double_t mf = 0.4, Int_t dLinitial = 1, Int_t dLfinal = 500){
     
     auto start_time_final = std::chrono::high_resolution_clock::now();
