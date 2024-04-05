@@ -35,33 +35,38 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::string gasName = "He", ){
-    
+Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::string gasName = "He", Double_t m = 0.25,
+                                     Int_t num_intervals_max = 500, Int_t num_intervals_min = 50,
+                                     Int_t qawo_levels_max = 150, Int_t qawo_levels_min = 10) {
     auto start_time_final = std::chrono::high_resolution_clock::now();
+
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
     Double_t gasDensity = 2.9836e-10;
-    TVector3 initialPosition(-5, 5, -11000);
-    TVector3 finalPosition(5,-5, 11000);
-    std::vector<Double_t> mass;
-    std::vector<Int_t> dLvec;
+    TVector3 position(-5, 5, -11000);
+    TVector3 direction = (position - TVector3(5, -5, 11000)).Unit();
 
-    std::vector<Int_t> dLvalues = {1, 500};
+    std::vector<Int_t> num_intervals;
+    std::vector<Int_t> qawo_levels;
 
     for (Int_t j = 0; j < nData; j++) {
-        mass.push_back(mi + j * (mf - mi) / nData);
-        Int_t dL = dLinitial + j * (dLfinal - dLinitial) / nData;
-        dLvec.push_back(dL);
+        Int_t intervals = num_intervals_min + j * (num_intervals_max - num_intervals_min) / nData
+        num_intervals.push_back(intervals);
+        Int_t level = qawo_levels_min + j * (qawo_levels_max - qawo_levels_min) / nData;
+        dLvec.push_back(level);
     }
 
-    // Check if 1 and 500 are present in dLvec, if not, add them
-    if (std::find(dLvec.begin(), dLvec.end(), 1) == dLvec.end()) {
-        dLvec.push_back(1);
+    std::vector<Double_t> mass;
+    // Create instance of TRestAxionBufferGas and fill the mass vector depending on gas pointer
+    std::unique_ptr<TRestAxionBufferGas> gasPtr;
+    if (!gasName.empty()) {
+        gasPtr = std::make_unique<TRestAxionBufferGas>();
+        gasPtr->SetGasDensity(gasName, gasDensity);
+        mass.push_back(gasPtr->GetPhotonMass(Ea));
+    } else {
+        mass.push_back(0);
     }
-    if (std::find(dLvec.begin(), dLvec.end(), 500) == dLvec.end()) {
-        dLvec.push_back(500);
-    }
-    std::sort(dLvec.begin(), dLvec.end());
+    mass.push_back(m);
 
     for(const auto &fieldName : fieldNames){
         
@@ -69,213 +74,137 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::s
         auto magneticField = std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName);
         auto axionField = std::make_unique<TRestAxionField>();
 
-        std::unique_ptr<TRestAxionBufferGas> gas;
-        if (!gasName.empty()) {
-            gas = std::make_unique<TRestAxionBufferGas>();
-            gas->SetGasDensity(gasName, gasDensity);
-            axionField->AssignBufferGas(gas.get());
-        }
+        if (!gasName.empty())
+            axionField->AssignBufferGas(gasPtr.get());
         axionField->AssignMagneticField(magneticField.get());
+        magneticField->SetTrack(position, direction);
 
-        // Create TCanvas for plotting
-        auto canvasRuntime = std::make_unique<TCanvas>((fieldName + "_Runtime").c_str(), (fieldName + "_Runtime").c_str(), 850, 673);
-        auto canvasProbability = std::make_unique<TCanvas>((fieldName + "_Probability").c_str(), (fieldName + "_Probability").c_str(), 850, 673);
-        
-        // Create 2D histograms
-        auto histRuntime = std::make_unique<TH2D>("histRuntime", "Runtime vs Mass vs dL", mass.size(), mi, mf, dLvec.size(), dLinitial, dLfinal);
-        auto histProbability = std::make_unique<TH2D>("histProbability", "Probability vs Mass vs dL", mass.size(), mi, mf, dLvec.size(), dLinitial, dLfinal);
-
-        std::vector<TGraph*> graphProb;
-        std::vector<TGraph*> graphRun;
-        for(const auto &dL : dLvec){
-        //for(const auto &dL : {500}){
+        for(const auto &ma : mass){
             if(kDebug){
                 std::cout << "+--------------------------------------------------------------------------+" << std::endl;
-                std::cout << "dL: " << dL << std::endl;
+                std::cout << " Mass : " << ma << std::endl;
                 std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                 std::cout << std::endl;
             }
 
-            std::vector<Double_t> probabilityValues, runTimeValues;
+            // Create TCanvas for plotting
+            auto canvasRuntime = std::make_unique<TCanvas>((fieldName + "_Runtime").c_str(), (fieldName + "_Runtime").c_str(), 850, 673);
+            auto canvasProbability = std::make_unique<TCanvas>((fieldName + "_Probability").c_str(), (fieldName + "_Probability").c_str(), 850, 673);
+            auto canvasError = std::make_unique<TCanvas>((fieldName + "_Error").c_str(), (fieldName + "_Error").c_str(), 850, 673);
 
-            // Runtime for filling the magnetic values
-            auto start_timeStandard = std::chrono::high_resolution_clock::now();
-            std::vector<Double_t> magneticValues = magneticField->GetTransversalComponentAlongPath(initialPosition, finalPosition, dL);
-            for (const auto &value : magneticValues)
-                std::cout << value << std::endl;
-            auto end_timeStandard = std::chrono::high_resolution_clock::now();
-            auto durationStandard = std::chrono::duration_cast<std::chrono::microseconds>(end_timeStandard - start_timeStandard);
+            // Create 2D histograms
+            auto histRuntime = std::make_unique<TH3D>("histRuntime", "Runtime vs Num_intervals vs Qawo_levels",
+                                                       nData, num_intervals_min, num_intervals_max,
+                                                       nData, qawo_levels_min, qawo_levels_max);
+            auto histProbability = std::make_unique<TH3D>("histProbability", "Probability vs  Num_intervals vs Qawo_levels",
+                                                           nData, num_intervals_min, num_intervals_max,
+                                                           nData, qawo_levels_min, qawo_levels_max);
+            auto histError = std::make_unique<TH3D>("histError", "Error vs  Num_intervals vs Qawo_levels",
+                                                     nData, num_intervals_min, num_intervals_max,
+                                                     nData, qawo_levels_min, qawo_levels_max);
 
-            for(const auto &ma : mass){
+            for(const auto &num_interval : num_intervals){
                 if(kDebug){
                     std::cout << "+--------------------------------------------------------------------------+" << std::endl;
-                    std::cout << "Mass: " << ma << std::endl;
+                    std::cout << ": Number of intervals " << num_interval << std::endl;
                     std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                     std::cout << std::endl;
                 }
-                // Standard Integration
-                auto start_time = std::chrono::high_resolution_clock::now();
-                Double_t probField = axionField->GammaTransmissionProbability(magneticValues, dL, Ea, ma);
-                auto end_time = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
-
-                if(kDebug){
-                    std::cout << "Probability: " << probField << std::endl;
-                    std::cout << "Runtime (μs): " << duration.count() << std::endl;
-                    std::cout << std::endl;
-                }
-
-                // Fill the histograms
-                histRuntime->Fill(ma, dL, duration.count() + durationStandard.count());
-                histProbability->Fill(ma, dL, probField);
-
-                if (dL == dLvalues[0] || dL == dLvalues[1]) {
-                    probabilityValues.push_back(probField);
-                    runTimeValues.push_back(duration.count() + durationStandard.count());
-
+                for(const auto &qawo_level : qawo_levels){
                     if(kDebug){
-                        // Debug output to check if values are saved correctly
-                        std::cout << "Values saved for dL = " << dL << std::endl;
-                        std::cout << "Probability Values: ";
-                        for (const auto& value : probabilityValues) {
-                            std::cout << value << " ";
-                        }
-                        std::cout << std::endl;
-
-                        std::cout << "Runtime Values: ";
-                        for (const auto& value : runTimeValues) {
-                            std::cout << value << " ";
-                        }
+                        std::cout << "+--------------------------------------------------------------------------+" << std::endl;
+                        std::cout << "Number of qawo levels: " << qawo_level << std::endl;
+                        std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                         std::cout << std::endl;
                     }
+
+                    // GSL Integration
+                    auto start_time = std::chrono::high_resolution_clock::now();
+                    std::pair<Double_t, DOuble_t> probField = axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.1, num_interval, qawo_level);
+                    auto end_time = std::chrono::high_resolution_clock::now();
+                    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+
+                    if(kDebug){
+                        std::cout << "Probability: " << probField.first << std::endl;
+                        std::cout << "Error: " << probField.second << std::endl;
+                        std::cout << "Runtime (ms): " << duration.count() << std::endl;
+                        std::cout << std::endl;
+                    }
+
+                    // Fill the histograms
+                    histRuntime->Fill(num_interval, qawo_level, duration.count());
+                    histProbability->Fill(num_interval, qawo_level, probField.first);
+                    histError->Fill(num_interval, qawo_level, probField.second);
+
                 }
             }
 
-            if (dL == dLvalues[0] || dL == dLvalues[1]){
-                // Create TGraphs and save them in vectors
-                TGraph* graphProbField = new TGraph(probabilityValues.size(), &mass[0], &probabilityValues[0]);
-                TGraph* graphRunTime = new TGraph(runTimeValues.size(), &mass[0], &runTimeValues[0]);
+            // Draw histograms on canvases
+            canvasRuntime->cd();
+            histRuntime->SetStats(0);
+            histRuntime->GetXaxis()->SetLabelSize(0.03);
+            histRuntime->GetXaxis()->SetLabelFont(22); 
+            histRuntime->GetXaxis()->SetTitleSize(0.03); 
+            histRuntime->GetXaxis()->SetTitleFont(22);  
+            histRuntime->GetYaxis()->SetLabelSize(0.03);
+            histRuntime->GetYaxis()->SetLabelFont(22);
+            histRuntime->GetYaxis()->SetTitleSize(0.03);
+            histRuntime->GetYaxis()->SetTitleFont(22); 
+            histRuntime->GetZaxis()->SetLabelSize(0.03);
+            histRuntime->Draw("COLZ");
 
-                graphProb.push_back(graphProbField);
-                graphRun.push_back(graphRunTime);
-            }
-        }
+            canvasProbability->cd();
+            histProbability->SetStats(0);
+            histProbability->GetXaxis()->SetLabelSize(0.03);
+            histProbability->GetXaxis()->SetLabelFont(22); 
+            histProbability->GetXaxis()->SetTitleSize(0.03);
+            histProbability->GetXaxis()->SetTitleFont(22); 
+            histProbability->GetYaxis()->SetLabelSize(0.03); 
+            histProbability->GetYaxis()->SetLabelFont(22);
+            histProbability->GetYaxis()->SetTitleSize(0.03);
+            histProbability->GetYaxis()->SetTitleFont(22); 
+            histProbability->GetZaxis()->SetLabelSize(0.02);
+            histProbability->Draw("COLZ");
 
-        // Draw histograms on canvases
-        canvasRuntime->cd();
-        histRuntime->SetStats(0);
-        histRuntime->GetXaxis()->SetLabelSize(0.03);
-        histRuntime->GetXaxis()->SetLabelFont(22); 
-        histRuntime->GetXaxis()->SetTitleSize(0.03); 
-        histRuntime->GetXaxis()->SetTitleFont(22);  
-        histRuntime->GetYaxis()->SetLabelSize(0.03);
-        histRuntime->GetYaxis()->SetLabelFont(22);
-        histRuntime->GetYaxis()->SetTitleSize(0.03);
-        histRuntime->GetYaxis()->SetTitleFont(22); 
-        histRuntime->GetZaxis()->SetLabelSize(0.03);
-        histRuntime->Draw("COLZ");
+            canvasError->cd();
+            histError->SetStats(0);
+            histError->GetXaxis()->SetLabelSize(0.03);
+            histError->GetXaxis()->SetLabelFont(22); 
+            histError->GetXaxis()->SetTitleSize(0.03);
+            histError->GetXaxis()->SetTitleFont(22); 
+            histError->GetYaxis()->SetLabelSize(0.03); 
+            histError>GetYaxis()->SetLabelFont(22);
+            histError->GetYaxis()->SetTitleSize(0.03);
+            histError->GetYaxis()->SetTitleFont(22); 
+            histError->GetZaxis()->SetLabelSize(0.02);
+            histError->Draw("COLZ");
 
-        canvasProbability->cd();
-        histProbability->SetStats(0);
-        histProbability->GetXaxis()->SetLabelSize(0.03);
-        histProbability->GetXaxis()->SetLabelFont(22); 
-        histProbability->GetXaxis()->SetTitleSize(0.03);
-        histProbability->GetXaxis()->SetTitleFont(22); 
-        histProbability->GetYaxis()->SetLabelSize(0.03); 
-        histProbability->GetYaxis()->SetLabelFont(22);
-        histProbability->GetYaxis()->SetTitleSize(0.03);
-        histProbability->GetYaxis()->SetTitleFont(22); 
-        histProbability->GetZaxis()->SetLabelSize(0.02);
-        histProbability->Draw("COLZ");
 
-        // Save the plots if required
-        if (kSave) {
-            std::string folder = "IntegralAnalysis/";
-            if (!std::filesystem::exists(folder)) {
-                std::filesystem::create_directory(folder);
-            }
-
-            std::string fileNameRuntime = fieldName + "_RuntimeStandard.png";
-            std::string fileNameProbability = fieldName + "_ProbabilityStandard.png";
-            canvasRuntime->SaveAs((folder + fileNameRuntime).c_str());
-            canvasProbability->SaveAs((folder + fileNameProbability).c_str());
-        }
-
-        if (kPlot) {
-            // Create a canvas to hold the probability graphs
-            TCanvas* canvasProb = new TCanvas((fieldName + "Probability").c_str(), (fieldName + " Probability Values").c_str(), 800, 600);
-            TLegend* legendProb = new TLegend(0.1, 0.8, 0.3, 0.9);
-
-            // Loop over each set of probability graphs
-            for (size_t i = 0; i < graphProb.size(); ++i) {
-                graphProb[i]->SetLineColor(i + 1);
-                graphProb[i]->SetLineWidth(1);
-                if (i == 0) {
-                    graphProb[i]->Draw("ACP"); 
-                    legendProb->AddEntry(graphProb[i], "dL = 1", "l");
-                } else {
-                    graphProb[i]->Draw("ACP SAME"); 
-                    legendProb->AddEntry(graphProb[i], "dL = 10", "l");
-                }
-               
-            }
-
-            graphProb[0]->SetTitle("Axion Mass vs Probability");
-            graphProb[0]->GetYaxis()->SetTitle("Probability");
-            graphProb[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
-            graphProb[0]->GetXaxis()->SetTitleSize(0.03);
-            graphProb[0]->GetYaxis()->SetTitleSize(0.03);
-            graphProb[0]->GetXaxis()->SetLabelSize(0.03);
-            graphProb[0]->GetYaxis()->SetLabelSize(0.03);
-
-            legendProb->Draw();
-            canvasProb->Update();
-            canvasProb->Draw();
-
-            // Create a canvas to hold the runtime graphs
-            TCanvas* canvasRun = new TCanvas((fieldName + "Runtime").c_str(), (fieldName + " Runtime Values").c_str(), 800, 600);
-            TLegend* legendRun = new TLegend(0.1, 0.8, 0.3, 0.9);
-
-            // Loop over each set of runtime graphs
-            for (size_t i = 0; i < graphRun.size(); ++i) {
-                graphRun[i]->SetLineColor(i + 1);
-                graphRun[i]->SetLineWidth(1);
-                if (i == 0) {
-                    graphRun[i]->Draw("ACP"); 
-                    legendRun->AddEntry(graphRun[i], "dL = 1", "l");
-                } else {
-                    graphRun[i]->Draw("ACP SAME");
-                    legendRun->AddEntry(graphRun[i], "dL = 10", "l");
-                }
-            }
-
-            graphRun[0]->SetTitle("Axion Mass vs RunTime");
-            graphRun[0]->GetYaxis()->SetTitle("RunTime (μs)");
-            graphRun[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
-            graphRun[0]->GetXaxis()->SetTitleSize(0.03);
-            graphRun[0]->GetYaxis()->SetTitleSize(0.03);
-            graphRun[0]->GetXaxis()->SetLabelSize(0.03);
-            graphRun[0]->GetYaxis()->SetLabelSize(0.03);
-
-            legendRun->Draw();
-            canvasRun->Update();
-            canvasRun->Draw();
-
+            // Save the plots if required
             if (kSave) {
-                canvasRun->SaveAs(("IntegralAnalysis/" + fieldName + "_RuntimePlot.png").c_str());
-                canvasProb->SaveAs(("IntegralAnalysis/" + fieldName + "_ProbabilityPlot.png").c_str());
-            }
+                std::string folder = "IntegralAnalysis/";
+                if (!std::filesystem::exists(folder)) {
+                    std::filesystem::create_directory(folder);
+                }
+
+                std::string fileNameRuntime = fieldName + std::to_string(ma) + "_RuntimeGSL.png";
+                std::string fileNameProbability = fieldName +  std::to_string(ma) + "_ProbabilityGSL.png";
+                std::string fileNameError = fieldName +  std::to_string(ma) + "_ProbabilityGSL.png"
+                canvasRuntime->SaveAs((folder + fileNameRuntime).c_str());
+                canvasProbability->SaveAs((folder + fileNameProbability).c_str());
+                canvasError->SaveAs((folder + fileNameProbability).c_str());
+            } 
         }
     }
 
     auto end_time_final = std::chrono::high_resolution_clock::now();
-    auto duration_final = std::chrono::duration_cast<std::chrono::microseconds>(end_time_final - start_time_final);
+    auto duration_final = std::chrono::duration_cast<std::chrono::seconds>(end_time_final - start_time_final);
 
     // Open an output file stream
-    std::ofstream outputFile("duration_output.txt");
+    std::ofstream outputFile("DurationOutput_GSL.txt");
 
     if (outputFile.is_open()) {
-        outputFile << "Final duration: " << duration_final.count() << " microseconds" << std::endl;
+        outputFile << "Final duration: " << duration_final.count() << " seconds" << std::endl;
 
         outputFile.close();
     } else {

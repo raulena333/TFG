@@ -276,13 +276,13 @@ Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, s
     }
 
     auto end_time_final = std::chrono::high_resolution_clock::now();
-    auto duration_final = std::chrono::duration_cast<std::chrono::microseconds>(end_time_final - start_time_final);
+    auto duration_final = std::chrono::duration_cast<std::chrono::seconds>(end_time_final - start_time_final);
 
     // Open an output file stream
-    std::ofstream outputFile("duration_output.txt");
+    std::ofstream outputFile("DurationOutput_Standard.txt");
 
     if (outputFile.is_open()) {
-        outputFile << "Final duration: " << duration_final.count() << " microseconds" << std::endl;
+        outputFile << "Final duration: " << duration_final.count() << " seconds" << std::endl;
 
         outputFile.close();
     } else {
