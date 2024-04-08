@@ -24,7 +24,7 @@
 //*** (20, 20, 100), (30, 30, 150), (50, 50, 250), (50, 50, 500)
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 100).
+//*** - nData: Number of data points to generate (default: 200).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - mi: Initial axion mass in eV (default: 0.).
@@ -52,7 +52,7 @@ constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
 Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", 
-                                  Double_t mi = 0., Double_t mf = 0.5, bool useLogScale = false) {
+                                  Double_t mi = 0., Double_t mf = 0.5, Bool_t useLogScale = true) {
     // Mesh Map Definitions in mm
     std::vector<TVector3> meshSizes = {
         TVector3(10,10,50),
@@ -65,8 +65,8 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::str
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
     Double_t gasDensity = 2.9836e-10;
-    TVector3 position(-100, -100 ,-11000);
-    TVector3 direction = (position - TVector3(10, -10 , 9000)).Unit();
+    TVector3 position(-10, 10, -11000);
+    TVector3 direction = (position - TVector3(10, -10 , 11000)).Unit();
 
     // Create an instance of TRestAxionBufferGas if gasName is provided
     std::unique_ptr<TRestAxionBufferGas> gas = nullptr;
@@ -210,13 +210,22 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::str
             legendRun->Draw();
 
             if (kSave) {
-                std::string folder = "InterpolationAnalysis/";
+                std::string folder = "GridAnalysis/";
                 if (!std::filesystem::exists(folder)) {
                     std::filesystem::create_directory(folder);
                 }
 
-                std::string fileNameProb = fieldName + "_ProbabilityInterpolation.png";
-                std::string fileNameRun = fieldName + "_RunTimeInterpolation.png";
+                std::string fileNameProb = fieldName + "_GridAnalysis_Probability";
+                std::string fileNameRun = fieldName + "_GridAnalysis_RunTime";
+
+                if (useLogScale) {
+                    fileNameProb += "_log.png";
+                    fileNameRun += "_log.png";
+                } else {
+                    fileNameProb += ".png";
+                    fileNameRun += ".png";
+                }
+
                 canvasProb->SaveAs((folder + fileNameProb).c_str());
                 canvasRun->SaveAs((folder + fileNameRun).c_str());
             }
