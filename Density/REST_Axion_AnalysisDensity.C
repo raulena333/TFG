@@ -1,12 +1,19 @@
 #include <iostream>
-#include <vector>
 #include <chrono>
-#include <TLatex.h>
+#include <vector>
+#include <fstream>
+#include <map>
+#include <numeric>
+#include <iomanip>
+#include <sstream>
+#include <memory>
+#include <filesystem>
+
+#include <TCanvas.h>
+#include <TH2D.h>
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
 #include "TRestAxionField.h"
-#include "TCanvas.h"
-#include "TGraph.h"
 
 //*******************************************************************************************************
 //*** Description:
@@ -17,7 +24,7 @@
 //*** GenerateDensityValues, ComputeTransmissionAndComputationTime, and CreateGraphsAndPushToVectors.
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate for density analysis. (default is 100).
+//*** - nData: Number of data points to generate for density analysis. (default is 150).
 //*** - Ea: Energy of the axion (eV). (default is 4.2).
 //*** - gasName: Name of the buffer gas. (default is "He") (helium).
 //*** - maxD: Maximum density value to consider in the analysis in kg/mm^3. (default is 1e-9).
@@ -115,6 +122,9 @@ Int_t REST_Axion_AnalysisDensity(Int_t nData = 150, Double_t Ea = 4.2, std::stri
     }
 
     if (fPlot) {
+
+        std::string folder = "DensityAnalysis/";
+
         // Plot Axion Mass vs. Density
         TCanvas* canvasAxionMass = new TCanvas("canvas", "Axion Mass vs. Density", 800, 600);
         auto graph = std::make_unique<TGraph>(axionMass.size(), &density[0], &axionMass[0]);
@@ -129,7 +139,13 @@ Int_t REST_Axion_AnalysisDensity(Int_t nData = 150, Double_t Ea = 4.2, std::stri
         graph->SetLineWidth(2);
         graph->SetMarkerColor(kBlack);
         graph->Draw("ACP");
-        if (fSave) canvasAxionMass->SaveAs("AxionMass_vs_Density.png");
+        if (fSave){
+            if (!std::filesystem::exists(folder)) {
+                std::filesystem::create_directory(folder);
+            }
+            std::string fileName = folder + "AxionMass_vs_Density.png";
+            canvasAxionMass->SaveAs(fileName.c_str());
+        }
 
        // Plot Transmission Probability vs. Density
         TCanvas* canvasTransmission = new TCanvas("canvasTransmission", "Transmission Probability vs. Density", 800, 600);
@@ -181,7 +197,10 @@ Int_t REST_Axion_AnalysisDensity(Int_t nData = 150, Double_t Ea = 4.2, std::stri
         // legendTransmission2->AddEntry(TransmissionProbabilityvsDensityGSL[1], "babyIAXO_2024", "l");
         // legendTransmission2->Draw();
 
-        if (fSave) canvasTransmission->SaveAs("TransmissionProbability_vs_Density.png");
+        if (fSave){
+            std::string fileName = folder + "TransmissionProbability_vs_Density.png";
+            canvasTransmission->SaveAs(fileName.c_str());
+        } 
 
         // Plot Computation Time vs. Density
         TCanvas* canvasComputationTime = new TCanvas("canvasComputationTime", "Computation Time vs. Density", 800, 600);
@@ -233,7 +252,10 @@ Int_t REST_Axion_AnalysisDensity(Int_t nData = 150, Double_t Ea = 4.2, std::stri
         // legendComputation2->AddEntry(ComputationTimevsDensityGSL[1], "babyIAXO_2024", "l");
         // legendComputation2->Draw();
 
-        if (fSave) canvasComputationTime->SaveAs("ComputationTime_vs_Density.png");
+        if (fSave){
+            std::string fileName = folder + "ComputationTime_vs_Density.png";
+            canvasComputationTime->SaveAs(fileName.c_str());
+        }
 
         if(fDebug && fSave){
             std::cout << "+--------------------------------------------------------------------------+" << std::endl;
