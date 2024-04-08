@@ -4,14 +4,17 @@
 #include <fstream>
 #include <map>
 #include <numeric>
+#include <iomanip>
+#include <sstream>
+#include <memory>
+#include <filesystem>
+
 #include <TCanvas.h>
-#include <TMultiGraph.h>
-#include <TGraphErrors.h>
-#include <TLegend.h>
+#include <TH2D.h>
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
 #include "TRestAxionField.h"
-#include <TLatex.h>
+
 
 //*******************************************************************************************************
 //*** Description: This function, performs an analysis of the magnetic field along multiple predefined tracks. 
@@ -47,7 +50,7 @@ struct FieldTrack {
     std::vector<double> probability;
 };
 
-Int_t REST_Axion_AnalysisMagenticFieldPlot(Double_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
+Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
                                             Double_t mf = 0.5, Double_t dL = 10) {
     const bool fDebug = false;
     const bool fPlot = true;
@@ -81,7 +84,7 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Double_t nData = 100, Double_t Ea = 4
     };
 
     std::vector<std::string> trackNames = {
-        "Center",  "Extreme1", "Extreme2", "Random", "Random1", "Random2", "Outside"
+        "Center", "Extreme1", "Extreme2", "Random", "Random1", "Random2", "Outside"
     };
 
     // Populate fieldTracks
@@ -183,6 +186,7 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Double_t nData = 100, Double_t Ea = 4
                 TGraph *graph = new TGraph(probabilities.size(), &mass[0], probabilities.data());
                 graph->SetLineColor(colors[colorIndex]); 
                 graph->SetLineWidth(2);
+                graph->SetTitle((fieldName + " Probability against mass for different tracks").c_str());
 
                 // Draw the graph on the canvas with "Same" option after the first graph
                 if (graphs.empty()) {
@@ -209,8 +213,12 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Double_t nData = 100, Double_t Ea = 4
             legend->Draw();   
             canvas->Update();
 
-            if (fSave) {
-                std::string name = "ProbabilityVsMass_" + fieldName + ".png"; 
+            if (fSave) {                   
+                std::string folder = "TrackAnalysis/";
+                if (!std::filesystem::exists(folder)) {
+                    std::filesystem::create_directory(folder);
+                }
+                std::string name = folder + "ProbabilityVsMass_" + fieldName + ".png"; 
                 canvas->SaveAs(name.c_str());
             }
 
