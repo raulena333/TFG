@@ -1,16 +1,16 @@
 #include <iostream>
 #include <chrono>
 #include <vector>
-#include <algorithm>
+#include <fstream>
+#include <map>
+#include <numeric>
+#include <iomanip>
+#include <sstream>
+#include <memory>
+#include <filesystem>
+
 #include <TCanvas.h>
 #include <TH2D.h>
-#include <TMultiGraph.h>
-#include <TGraph.h>
-#include <TLegend.h>
-#include <random>
-#include <numeric>
-#include <fstream>
-
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
 #include "TRestAxionField.h"
@@ -223,6 +223,8 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
 
         canvasHeatMapProbStandard->cd();
         heatmapProbStandard->SetStats(0);
+        heatmapProbStandard->GetXaxis()->SetTitle("dx");
+        heatmapProbStandard->GetYaxis()->SetTitle("dy");
         heatmapProbStandard->GetXaxis()->SetLabelSize(0.03);
         heatmapProbStandard->GetXaxis()->SetLabelFont(22); 
         heatmapProbStandard->GetXaxis()->SetTitleSize(0.03);
@@ -237,6 +239,8 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
 
         canvasHeatMapProbGSL->cd();
         heatmapProbGSL->SetStats(0);
+        heatmapProbGSL->GetXaxis()->SetTitle("dx");
+        heatmapProbGSL->GetYaxis()->SetTitle("dy");
         heatmapProbGSL->GetXaxis()->SetLabelSize(0.03);
         heatmapProbGSL->GetXaxis()->SetLabelFont(22); 
         heatmapProbGSL->GetXaxis()->SetTitleSize(0.03);
@@ -250,6 +254,8 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
 
         canvasHeatMapRunTimeStandard->cd();
         heatmapRuntimeStandard->SetStats(0);
+        heatmapRuntimeStandard->GetXaxis()->SetTitle("dx");
+        heatmapRuntimeStandard->GetYaxis()->SetTitle("dy");
         heatmapRuntimeStandard->GetXaxis()->SetLabelSize(0.03);
         heatmapRuntimeStandard->GetXaxis()->SetLabelFont(22); 
         heatmapRuntimeStandard->GetXaxis()->SetTitleSize(0.03); 
@@ -263,6 +269,8 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
 
         canvasHeatMapRunTimeGSL->cd();
         heatmapRuntimeGSL->SetStats(0);
+        heatmapRuntimeGSL->GetXaxis()->SetTitle("dx");
+        heatmapRuntimeGSL->GetYaxis()->SetTitle("dy");
         heatmapRuntimeGSL->GetXaxis()->SetLabelSize(0.03);
         heatmapRuntimeGSL->GetXaxis()->SetLabelFont(22); 
         heatmapRuntimeGSL->GetXaxis()->SetTitleSize(0.03);
@@ -275,10 +283,14 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
         heatmapRuntimeGSL->Draw("colz");
 
         if (kSave) {
-            std::string imageNameProbS = fieldName + "_Probability_HeatmapsStandard.png";
-            std::string imageNameProbG = fieldName + "_Probability_HeatmapsGSL.png";
-            std::string imageNameRunTimeS = fieldName + "_Runtime_HeatmapsStandard.png";
-            std::string imageNameRunTimeG = fieldName + "_Runtime_HeatmapsGSL.png";
+            std::string folder = "HeatMapsTracks/";
+            if (!std::filesystem::exists(folder)) {
+                std::filesystem::create_directory(folder);
+            }
+            std::string imageNameProbS = folder + fieldName + "_Probability_HeatmapsStandard.png";
+            std::string imageNameProbG = folder + fieldName + "_Probability_HeatmapsGSL.png";
+            std::string imageNameRunTimeS = folder + fieldName + "_Runtime_HeatmapsStandard.png";
+            std::string imageNameRunTimeG = folder + fieldName + "_Runtime_HeatmapsGSL.png";
             canvasHeatMapProbStandard->SaveAs(imageNameProbS.c_str());
             canvasHeatMapProbGSL->SaveAs(imageNameProbG.c_str());
             canvasHeatMapRunTimeStandard->SaveAs(imageNameRunTimeS.c_str());
@@ -407,7 +419,8 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
             canvasProb->Draw();
 
             if (kSave) {
-                std::string imageNameProb = fieldName + "_Probability_Plots.png";
+                std::string folder = "HeatMapsTracks/";
+                std::string imageNameProb = folder + fieldName + "_Probability_Plots.png";
                 canvasProb->SaveAs(imageNameProb.c_str());
             }
 
@@ -531,7 +544,8 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
             canvasRuntime->Draw();
 
             if (kSave) {
-                std::string imageNameRuntime = fieldName + "_Runtime_Plots.png";
+                std::string folder = "HeatMapsTracks/";
+                std::string imageNameRuntime = folder + fieldName + "_Runtime_Plots.png";
                 canvasRuntime->SaveAs(imageNameRuntime.c_str());
             }
         }
@@ -540,9 +554,9 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
     auto end_time_code = std::chrono::high_resolution_clock::now();
     auto duration_code = std::chrono::duration_cast<std::chrono::seconds>(end_time_code - start_time_code);
 
-    std::ofstream outFile("DurationCode.txt");
+    std::ofstream outFile("HeatMapsTracks/DurationCode.txt");
     if (outFile.is_open()) {
-        outFile << duration_code.count() << " seconds"; // Assuming duration_code is a numeric type
+        outFile << duration_code.count() << " seconds";
         outFile.close();
     } else {
         std::cerr << "Error: Unable to open DurationCode.txt for writing." << std::endl;
