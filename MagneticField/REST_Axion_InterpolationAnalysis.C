@@ -20,12 +20,12 @@
 //*** disable trilinear interpolation when calculating the magnetic field at an arbitrary point.
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 50).
+//*** - nData: Number of data points to generate (default: 20).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - m1: Axion mass in eV (default: 0.01).
-//*** - m2: Axion mass in eV (default: 0.3).
-//*** - Accuracy: Accuracy value for integration in GSL, depends on the axion mass (default 0.25).
+//*** - m2: Axion mass in eV (default: 0.2).
+//*** - Accuracy: Accuracy value for integration in GSL, depends on the axion mass (default 0.8).
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::SetInterpolation'. and 
@@ -48,14 +48,14 @@ struct FieldTrack {
 
 constexpr bool kDebug = true;
 
-Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string gasName = "He", 
-                    Double_t m1 = 0.01, Double_t m2 = 0.3 , Double_t accuracy = 0.52){
+Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::string gasName = "He", 
+                    Double_t m1 = 0.01, Double_t m2 = 0.2 , Double_t accuracy = 0.8){
 
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
     Double_t gasDensity = 2.9836e-10;
-    TVector3 position(-5, 5 , -9000);
-    TVector3 direction = (position - TVector3(5, -5, 9000));
+    TVector3 position(-10, 10, -11000);
+    TVector3 direction = (position - TVector3(10, -10 , 11000)).Unit();
 
     std::map<std::string, FieldTrack> fields = {
         {"Interpolation", {true}},
@@ -110,7 +110,7 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std:
                 for(auto& field : fields){
                     magneticField->SetInterpolation(field.second.interpolation);
                     auto start_time = std::chrono::high_resolution_clock::now();
-                    std::pair<Double_t, Double_t> probField = axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, 400, 50);
+                    std::pair<Double_t, Double_t> probField = axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, 100, 20);
                     auto end_time = std::chrono::high_resolution_clock::now();
                     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
@@ -118,7 +118,7 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std:
                     field.second.error.push_back(probField.second);
                     field.second.timeComputation.push_back(duration);
 
-                    if(kDebug){ // Fixed typo: Changed fDebug to kDebug
+                    if(kDebug){
                         std::cout << field.first << std::endl;
                         std::cout << "Probability: " << probField.first << std::endl;
                         std::cout << "Error: " << probField.second << std::endl;
@@ -138,7 +138,9 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std:
 
             // Open the file for writing
             std::string folder = "InterpolationAnalysis/";
-            std::filesystem::create_directory(folder); 
+            if (!std::filesystem::exists(folder)) {
+                std::filesystem::create_directory(folder);
+            }
             std::string filename;
             if (ma == (gas ? gas->GetPhotonMass(Ea) : 0)) {
                 filename = folder + "REST_AXION_" + fieldName + "_InterpolationAnalysis_results_OnResonance.txt";
@@ -160,7 +162,7 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std:
                 return 1;
             }
 
-            outputFile << (ma != (gas ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << std::endl;;
+            outputFile << (ma != (gas ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << "  Accuracy: " << accuracy << std::endl;
             outputFile << "Interpolation\tProbability\tError\tTime(ms)\n";
             for (const auto& field : fields) {
                 outputFile << field.first << "\t" << field.second.meanProbability << "\t" << field.second.meanError << "\t" << field.second.meanTime << "\n";

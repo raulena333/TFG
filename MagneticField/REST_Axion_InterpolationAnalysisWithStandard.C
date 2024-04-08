@@ -20,12 +20,12 @@
 //*** disable trilinear interpolation when calculating the magnetic field at an arbitrary point.
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 50).
+//*** - nData: Number of data points to generate (default: 20).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - m1: Axion mass in eV (default: 0.01).
 //*** - m2: Axion mass in eV (default: 0.3).
-//*** - Accuracy: Accuracy value for integration in GSL, depends on the axion mass (default 0.25).
+//*** - Accuracy: Accuracy value for integration in GSL, depends on the axion mass (default 0.5).
 //*** - dL: differential element in mm (default 10).
 //***
 //*** Dependencies:
@@ -55,14 +55,14 @@ struct FieldTrack {
 
 constexpr bool kDebug = true;
 
-Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 2, Double_t Ea = 4.2, std::string gasName = "He", 
-                    Double_t m1 = 0.01, Double_t m2 = 0.3 , Double_t accuracy = 0.52, Double_t dL = 10){
+Int_t REST_Axion_InterpolationAnalysisWithStandard(Int_t nData = 20, Double_t Ea = 4.2, std::string gasName = "He", 
+                    Double_t m1 = 0.01, Double_t m2 = 0.3 , Double_t accuracy = 0.5, Double_t dL = 10){
 
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
     Double_t gasDensity = 2.9836e-10;
-    TVector3 initialPosition(-5, 5 , -9000);
-    TVector3 finalPosition(5, -5, 9000);
+    TVector3 initialPosition(-10, 10 , -11000);
+    TVector3 finalPosition(10, -10, 11000);
     TVector3 direction = (finalPosition - initialPosition);
 
     std::map<std::string, FieldTrack> fields = {
@@ -87,7 +87,7 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 2, Double_t Ea = 4.2, std::
         }
     }
 
-    for(const auto& fieldName : fieldNames){
+    for(const auto &fieldName : fieldNames){
         // Create an instance of TRestAxionField and assign magnetic field and gas (if provided).
         auto magneticField = std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName);
         auto axionField = std::make_unique<TRestAxionField>();
@@ -101,7 +101,7 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 2, Double_t Ea = 4.2, std::
         magneticField->SetTrack(initialPosition, direction);
         axionField->AssignMagneticField(magneticField.get()); 
 
-        for(const auto& ma : masses){
+        for(const auto &ma : masses){
             if(kDebug){
                 std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                 std::cout << "Mass: " << ma << std::endl;
@@ -118,7 +118,7 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 2, Double_t Ea = 4.2, std::
                     std::cout << std::endl;
                 }
 
-                for(auto& field : fields){
+                for(auto &field : fields){
                     // GSL integration
                     magneticField->SetInterpolation(field.second.interpolation);
                     auto start_time_gsl = std::chrono::high_resolution_clock::now();
@@ -163,7 +163,7 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 2, Double_t Ea = 4.2, std::
             }
 
             // Calculate means
-            for (auto& field : fields) {
+            for (auto &field : fields) {
                 // GSL means
                 field.second.meanErrorG = std::accumulate(field.second.errorG.begin(), field.second.errorG.end(), 0.0) / nData;
                 field.second.meanProbabilityG = std::accumulate(field.second.probabilityG.begin(), field.second.probabilityG.end(), 0.0) / nData;
@@ -176,7 +176,9 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 2, Double_t Ea = 4.2, std::
 
             // Open the file for writing
             std::string folder = "InterpolationAnalysis/";
-            std::filesystem::create_directory(folder); 
+            if (!std::filesystem::exists(folder)) {
+                std::filesystem::create_directory(folder);
+            }
             std::string filenameG, filenameS;
             // Open file for GSL Integration
             if (ma == (gas ? gas->GetPhotonMass(Ea) : 0)) {
@@ -209,7 +211,7 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 2, Double_t Ea = 4.2, std::
             }
 
             outputFileG << "GSL Integration " << std::endl;
-            outputFileG << (ma != (gas ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << std::endl;;
+            outputFileG << (ma != (gas ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << "  Accuracy: " << accuracy << std::endl;
             outputFileG << "Interpolation\tProbability\tError\tTime(ms)\n";
             for (const auto& field : fields) {
                 outputFileG << field.first << "\t" << field.second.meanProbabilityG << "\t" << field.second.meanErrorG << "\t" << field.second.meanTimeG << "\n";
@@ -222,7 +224,7 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 2, Double_t Ea = 4.2, std::
             }
             outputFileG.close();
 
-            // Debug message: Opening file STandard
+            // Debug message: Opening file Standard
             if (kDebug) {
                 std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                 std::cout << "Opening file: " << filenameS  << std::endl;
@@ -235,9 +237,9 @@ Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 2, Double_t Ea = 4.2, std::
             }
 
             outputFileS << "Standard Integration " << std::endl;
-            outputFileS << (ma != (gas ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << std::endl;;
+            outputFileS << (ma != (gas ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << std::endl;
             outputFileS << "Interpolation\tProbability\tTime(μs)\n";
-            for (const auto& field : fields) {
+            for (const auto &field : fields) {
                 outputFileS << field.first << "\t" << field.second.meanProbabilityS << "\t" << "\t" << field.second.meanTimeS << "\n";
             }
 
