@@ -28,9 +28,9 @@
 //*** - nData: Number of data points to generate (default: 100).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
-//*** - mi: Initial axion mass in eV (default: -0.1).
-//*** - mf: Final axion mass in eV (default: 0.1).
-//*** - Accuracy: Accuracy value for intrgration in GSL, depends on the axion mass (default 0.2).
+//*** - mi: Initial axion mass in eV (default: 0.2).
+//*** - mf: Final axion mass in eV (default: 0.5).
+//*** - Accuracy: Accuracy value for intrgration in GSL, depends on the axion mass (default 1.).
 //*** - useLogSCale: set log scale in y-axis for plots (default: false)
 //***
 //*** Dependencies:
@@ -45,7 +45,7 @@ struct FieldTrack {
     bool interpolation;
 
     std::vector<double> probability;
-    std::vector<double> error;
+    //std::vector<double> error;
     std::vector<double> timeComputation;
 };
 
@@ -54,12 +54,13 @@ constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
 Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", 
-                    Double_t mi = 0., Double_t mf = 0.5, Double_t accuracy = 0.52, Bool_t useLogScale =  true){
+                    Double_t mi = 0.2, Double_t mf = 0.5, Double_t accuracy = 1., Bool_t useLogScale =  true){
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
     Double_t gasDensity = 2.9836e-10;
-    TVector3 position(-5, 5 , -9000);
-    TVector3 direction = (position - TVector3(5, -5, 9000));
+    TVector3 position(-10, 10, -11000);
+    TVector3 fposition(10, -10 , 11000);
+    TVector3 direction = (position - fposition).Unit();
     std::vector<Double_t> masses;
 
     std::map<std::string, FieldTrack> fields = {
@@ -79,7 +80,7 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
         masses.push_back(mi + j *(mf - mi)/ nData);
     }
 
-    for(const auto& fieldName : fieldNames){
+    for(const auto &fieldName : fieldNames){
         // Create an instance of TRestAxionField and assign magnetic field and gas (if provided).
         auto magneticField = std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName);
         auto axionField = std::make_unique<TRestAxionField>();
@@ -87,10 +88,11 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
         if (gas != nullptr) 
             axionField->AssignBufferGas(gas.get());
 
-        magneticField->SetTrack(position, direction);
+        //magneticField->SetTrack(position, direction);
+        std::vector<Double_t> magneticValues =  magneticField->GetTransversalComponentAlongPath(position, fposition, 10); 
         axionField->AssignMagneticField(magneticField.get()); 
 
-        for(const auto& ma : masses){
+        for(const auto &ma : masses){
             if(kDebug){
                 std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                 std::cout << "Mass: " << ma << std::endl;
@@ -98,22 +100,27 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
                 std::cout << std::endl;
             }
 
-            for(auto& field : fields){
+            for(auto &field : fields){
                 magneticField->SetInterpolation(field.second.interpolation);
                 auto start_time = std::chrono::high_resolution_clock::now();
-                std::pair<Double_t, Double_t> probField = axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, 1000, 20);
+                // GSL
+                //std::pair<Double_t, Double_t> probField = axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, 100, 20);
+                // Standard
+                Double_t probField = axionField->GammaTransmissionProbability(magneticValues, 10, Ea, ma);
                 auto end_time = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
 
-                field.second.probability.push_back(probField.first);
-                field.second.error.push_back(probField.second);
+                field.second.probability.push_back(probField);
+                //field.second.probability.push_back(probField.first);
+                //field.second.error.push_back(probField.second);
                 field.second.timeComputation.push_back(duration.count());
 
                 if(kDebug){
                     std::cout << "Mass: " << ma << std::endl;
                     std::cout << field.first << std::endl;
-                    std::cout << "Probability: " << probField.first << std::endl;
-                    std::cout << "Error: " << probField.second << std::endl;
+                    std::cout << "Probability: " << probField << std::endl;
+                    //std::cout << "Probability: " << probField.first << std::endl;
+                    //std::cout << "Error: " << probField.second << std::endl;
                     std::cout << "Runtime: " << duration.count() << std::endl;
                     std::cout << std::endl;
                 }
@@ -128,11 +135,13 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
             canvasProb->cd();
 
             Int_t colorIndex = 1;
-            TLegend *legendProb = new TLegend(0.1, 0.7, 0.3, 0.9);
-            std::vector<TGraphErrors*> graphsProb;
+            TLegend *legendProb = new TLegend(0.1, 0.8, 0.3, 0.9);
+            //std::vector<TGraphErrors*> graphsProb;
+            std::vector<TGraph*> graphsProb;
 
             for (const auto &field : fields) {
-                TGraphErrors *graph = new TGraphErrors(masses.size(), masses.data(), field.second.probability.data(), nullptr, field.second.error.data());
+                // TGraphErrors *graph = new TGraphErrors(masses.size(), masses.data(), field.second.probability.data(), nullptr, field.second.error.data());
+                TGraph *graph = new TGraph(masses.size(), masses.data(), field.second.probability.data());
                 graph->SetLineColor(colorIndex);
                 graph->SetLineWidth(1);
                 if (colorIndex == 1) {
@@ -164,7 +173,7 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
             canvasRun->cd();
 
             colorIndex = 1;
-            TLegend *legendRun = new TLegend(0.1, 0.7, 0.3, 0.9);
+            TLegend *legendRun = new TLegend(0.1, 0.8, 0.3, 0.9);
             std::vector<TGraph*> graphsRun;
 
             for (const auto &field : fields) {
@@ -183,7 +192,8 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
             }
 
             graphsRun[0]->SetTitle("Axion Mass vs RunTime");
-            graphsRun[0]->GetYaxis()->SetTitle("RunTime (ms)");
+            //graphsRun[0]->GetYaxis()->SetTitle("RunTime (ms)");
+            graphsRun[0]->GetYaxis()->SetTitle("RunTime (μs)");
             graphsRun[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
             graphsRun[0]->GetXaxis()->SetTitleSize(0.03);
             graphsRun[0]->GetYaxis()->SetTitleSize(0.03);
