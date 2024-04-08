@@ -113,7 +113,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::str
             }
             for(auto& field : fields) {
                 auto start_time = std::chrono::high_resolution_clock::now();
-                std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.3, 100, 20);
+                std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.1, 100, 20);
                 auto end_time = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
