@@ -4,11 +4,16 @@
 #include <fstream>
 #include <map>
 #include <numeric>
-#include <TLatex.h>
+#include <iomanip>
+#include <sstream>
+#include <memory>
+#include <filesystem>
+
+#include <TCanvas.h>
+#include <TH2D.h>
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
 #include "TRestAxionField.h"
-
 
 //*******************************************************************************************************
 //*** Description: This script analyzes the magnetic field along various tracks and calculates the transmission
@@ -18,10 +23,10 @@
 //*** - Center Point: Points near the center of the volume along each axis.
 //*** - Extreme Point: Points at the extreme ends of the volume along each axis.
 //*** - Random Points: Randomly selected points within the volume.
-//*** - Outside Point: Physically imposible due to the alignment of the detector with the sun.
+//*** - Outside Point: Physically impossible due to the alignment of the detector with the sun.
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 50).
+//*** - nData: Number of data points to generate (default: 20).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - m1: Axion mass in eV (default: 0.1).
@@ -30,8 +35,7 @@
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::GetTransversalComponentAlongPath`,
-//*** TRestAxionMagneticField::DrawTracks' extension of my own, `TRestAxionField::GammaTransmissionProbability` 
-//*** and `TRestAxionBufferGas::GetPhotonMass`.
+//*** `TRestAxionField::GammaTransmissionProbability`, and `TRestAxionBufferGas::GetPhotonMass`.
 //***
 //*** Author: Raul Ena
 //*******************************************************************************************************
@@ -44,12 +48,12 @@ struct FieldTrack {
     std::vector<double> magneticValues;
     std::vector<double> probability;
     std::vector<double> timeComputationProb;
-    double meanProbability = 0.0;
-    double meanTimeProb = 0.0;
-    double timeGet = 0.0;
+    double meanProbability;
+    double meanTimeProb;
+    double timeGet;
 };
 
-Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 50, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.1, 
+Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 20, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.1,
                                         Double_t m2 = 0.01, Double_t dL = 10.0) {
     const bool fDebug = true;
     const bool fPlot = true;
@@ -59,24 +63,56 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 50, Double_t Ea = 4.2, std:
     const std::string fieldName = "babyIAXO_2024_cutoff";
     const Double_t gasDensity = 2.9836e-10;
 
-    // Create an instance of TRestAxionMagneticField
-    TRestAxionMagneticField *field = new TRestAxionMagneticField("fields.rml", fieldName);
+    // Define all tracks
+    std::map<std::string, FieldTrack> fieldTracks;
 
-    //Save Plot of Tracks
+    std::vector<TVector3> startPoints = {
+        TVector3(250, 0, -6100),
+        TVector3(350, 350, -6100),
+        TVector3(-350, -350, -6100),
+        TVector3(-150, 20, -6100),
+        TVector3(-20, 220, -6100),
+        TVector3(-50, -90, -6100),
+        TVector3(-150, 420, -6100)
+    };
+
+    std::vector<TVector3> endPoints = {
+        TVector3(-250, 0, 6100),
+        TVector3(-350, -350, 6100),
+        TVector3(350, 350, 6100),
+        TVector3(-120, 70, 6100),
+        TVector3(-100, -170, 6100),
+        TVector3(70, -120, 6100),
+        TVector3(-270, -500, 6100)
+    };
+
+    std::vector<std::string> trackNames = {
+        "Center", "Extreme1", "Extreme2", "Random", "Random1", "Random2", "Outside"
+    };
+
+    // Populate fieldTracks
+    for (size_t i = 0; i < startPoints.size(); ++i) {
+        fieldTracks.emplace(trackNames[i], FieldTrack{startPoints[i], endPoints[i]});
+    }
+
+    // Create an instance of TRestAxionMagneticField
+    auto field = std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName);
+
+    // Save Plot of Tracks
     if(fPlot)
         field->DrawTracks(startPoints, endPoints, 100, fSave);
 
     // Create an instance of TRestAxionBufferGas if gasName is provided
-    TRestAxionBufferGas* gas = nullptr;
+    std::unique_ptr<TRestAxionBufferGas> gas = nullptr;
     if (!gasName.empty()) {
-        gas = new TRestAxionBufferGas();
+        gas = std::make_unique<TRestAxionBufferGas>();
         gas->SetGasDensity(gasName, gasDensity);
     }
     // Create an instance of TRestAxionField and assign magnetic field and gas (if provided)
-    TRestAxionField* axionField = new TRestAxionField();
-    axionField->AssignMagneticField(field);
+    auto axionField = std::make_unique<TRestAxionField>();
+    axionField->AssignMagneticField(field.get());
     if (gas != nullptr) {
-        axionField->AssignBufferGas(gas);
+        axionField->AssignBufferGas(gas.get());
     }
 
     // Calculate magnetic field values for each track
@@ -89,7 +125,7 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 50, Double_t Ea = 4.2, std:
         fieldTrack.second.timeGet = duration.count();
 
         if(fDebug){
-            std::cout << "Time: " << duration.count() << " ms" << std::endl;    
+            std::cout << "Time: " << duration.count() << " ms" << std::endl;
             std::cout << fieldTrack.first << " magneticValues:" << std::endl;
             for (const auto& value : fieldTrack.second.magneticValues) {
                 std::cout << value << " ";
@@ -137,16 +173,24 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 50, Double_t Ea = 4.2, std:
         for (auto& field : fieldTracks) {
             field.second.meanProbability = std::accumulate(field.second.probability.begin(), field.second.probability.end(), 0.0) / nData;
             field.second.meanTimeProb = std::accumulate(field.second.timeComputationProb.begin(), field.second.timeComputationProb.end(), 0.0) / nData;
+
+                if (fDebug) {
+                    std::cout << "Mean Probability for " << field.first << ": " << field.second.meanProbability << std::endl;
+                }
         }
 
         // Open the file for writing
+        std::string folder = "TrackAnalysis/";
+        if (!std::filesystem::exists(folder)) {
+            std::filesystem::create_directory(folder);
+        }
         std::string filename;
         if (ma == (gas != nullptr ? gas->GetPhotonMass(Ea) : 0)) {
-            filename = "REST_AXION_Magnetic_results_OnResonance.txt";
+            filename = folder + "REST_AXION_Magnetic_results_OnResonance.txt";
         } else {
             std::ostringstream oss;
             oss << std::fixed << std::setprecision(2) << ma;
-            filename = "REST_AXION_Magnetic_results_OffResonance_Mass_" + oss.str() + ".txt";
+            filename = folder + "REST_AXION_Magnetic_results_OffResonance_Mass_" + oss.str() + ".txt";
         }
 
         // Debug message: Opening file
@@ -161,11 +205,11 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 50, Double_t Ea = 4.2, std:
             return 1;
         }
 
-        outputFile << (ma == 0 ? "On resonance, dL : " : "Off resonance, dL : ") << dL << (ma == 0 ? "" : ", Axion-Mass :") << ma << std::fixed << std::setprecision(2) << std::endl;
+        outputFile << (ma == 0 ? "On resonance, dL : " : "Off resonance, dL : ") << dL << (ma == 0 ? "" : ", Axion-Mass :") << ma << std::endl;
         outputFile << "Direction\tProbability\tTimeProb (μs)\t TimeGet (ms)\n";
         for (const auto& field : fieldTracks)
             outputFile << field.first << "\t" << field.second.meanProbability << "\t" << field.second.meanTimeProb << "\t" << field.second.timeGet << "\n";
-            
+
         // Debug message: Closing file
         if (fDebug) {
             std::cout << "+--------------------------------------------------------------------------+" << std::endl;
