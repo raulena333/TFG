@@ -4,12 +4,12 @@
 #include <fstream>
 #include <map>
 #include <numeric>
-#include <iomanip> 
-#include <sstream> 
+#include <iomanip>
+#include <sstream>
 #include <memory>
+#include <filesystem>
 
 #include <TCanvas.h>
-#include <TVector3.h>
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
 #include "TRestAxionField.h"
@@ -23,7 +23,7 @@
 //*** (10, 10, 50), (20, 20, 100), (30, 30, 150), (50, 50, 250), (50, 50, 500)
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 50).
+//*** - nData: Number of data points to generate (default: 20).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - m1: Axion mass in eV (default: 0.01).
@@ -50,7 +50,8 @@ struct FieldTrack {
 
 constexpr bool kDebug = true;
 
-Int_t REST_Axion_GridAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.01, Double_t m2 = 0.3) {
+Int_t REST_Axion_GridAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.01, Double_t m2 = 0.1,
+                                Double_t accuracy = 0.1, Int_t num_intervals = 100, Int_t qawo_levels = 20) {
     // Mesh Map Definitions in mm
     std::vector<TVector3> meshSizes = {
         TVector3(10, 10, 50),
@@ -63,8 +64,8 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string g
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
     Double_t gasDensity = 2.9836e-10;
-    TVector3 position(-100, -100, -11000);
-    TVector3 direction = (position - TVector3(10, -10 , 9000)).Unit();
+    TVector3 position(-10, 10, -11000);
+    TVector3 direction = (position - TVector3(10, -10 , 11000)).Unit();
 
     // Create an instance of TRestAxionBufferGas if gasName is provided
     std::unique_ptr<TRestAxionBufferGas> gas = nullptr;
@@ -82,7 +83,7 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string g
             masses.push_back(gas != nullptr ? gas->GetPhotonMass(Ea) : 0);
     }
 
-    for(const auto& fieldName : fieldNames) {
+    for(const auto &fieldName : fieldNames) {
         // Fill the struct 
         std::map<std::string, FieldTrack> fields;
         for (size_t i = 0; i < meshSizes.size(); ++i) {
@@ -106,7 +107,7 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string g
             field.second.axionField->AssignMagneticField(field.second.magneticField.get());
         }  
 
-        for (const auto& ma : masses) {
+        for (const auto &ma : masses) {
             if(kDebug){
                 std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                 std::cout << "Mass: " << ma << std::endl;
@@ -122,9 +123,9 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string g
                     std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                     std::cout << std::endl;
                 }
-                for(auto& field : fields) {
+                for(auto &field : fields) {
                     auto start_time = std::chrono::high_resolution_clock::now();
-                    std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.3, 100, 20);
+                    std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, num_intervals, qawo_levels);
                     auto end_time = std::chrono::high_resolution_clock::now();
                     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
@@ -145,7 +146,7 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string g
             }
 
             // Calculate means
-            for (auto& field : fields) {
+            for (auto &field : fields) {
                 field.second.meanError = std::accumulate(field.second.error.begin(), field.second.error.end(), 0.0) / nData;
                 field.second.meanProbability = std::accumulate(field.second.probability.begin(), field.second.probability.end(), 0.0) / nData;
                 field.second.meanTime = std::accumulate(field.second.timeComputation.begin(), field.second.timeComputation.end(), std::chrono::milliseconds(0)).count() / nData;
@@ -154,6 +155,9 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string g
             // Open the file for writing
             std::string filename;
             std::string folder = "GridAnalysis/";
+            if (!std::filesystem::exists(folder)) {
+                std::filesystem::create_directory(folder);
+            }
             if (ma == (gas != nullptr ? gas->GetPhotonMass(Ea) : 0)) {
                 filename = folder + "REST_AXION_" + fieldName + "_GridAnalysis_results_OnResonance.txt";
             } else {

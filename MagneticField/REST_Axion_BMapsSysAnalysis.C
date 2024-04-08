@@ -81,7 +81,7 @@ Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 20, Double_t Ea = 4.2, Double_t 
     }
 
     // Set up Axion field
-    for (const auto& field : fields) {
+    for (const auto &field : fields) {
         if (gas != nullptr) {
             field.second.axionField->AssignBufferGas(gas);
         }
@@ -99,7 +99,7 @@ Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 20, Double_t Ea = 4.2, Double_t 
     }
 
     // Iterate over each mass and field track
-    for (const auto& ma : masses) {
+    for (const auto &ma : masses) {
         for (auto& field : fields) {
             field.second.probability.clear();
             field.second.timeComputation.clear();
@@ -114,7 +114,7 @@ Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 20, Double_t Ea = 4.2, Double_t 
                 std::cout << "Data: " << i << std::endl;
                 std::cout << std::endl;
             }
-            for (auto& field : fields) {
+            for (auto &field : fields) {
                 auto start_time = std::chrono::high_resolution_clock::now();
                 std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, num_intervals, qawo_levels);
                 auto end_time = std::chrono::high_resolution_clock::now();
@@ -137,7 +137,7 @@ Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 20, Double_t Ea = 4.2, Double_t 
         }
     
         // Calculate means
-        for (auto& field : fields) {
+        for (auto &field : fields) {
             field.second.meanError = std::accumulate(field.second.error.begin(), field.second.error.end(), 0.0) / nData;
             field.second.meanProbability = std::accumulate(field.second.probability.begin(), field.second.probability.end(), 0.0) / nData;
             field.second.meanTime = std::accumulate(field.second.timeComputation.begin(), field.second.timeComputation.end(), std::chrono::milliseconds(0)).count() / nData;
