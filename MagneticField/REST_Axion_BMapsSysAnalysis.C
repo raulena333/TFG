@@ -4,13 +4,13 @@
 #include <fstream>
 #include <map>
 #include <numeric>
-#include <iomanip> 
+#include <iomanip>
+#include <sstream>
+#include <memory>
+#include <filesystem>
 
 #include <TCanvas.h>
-#include <TMultiGraph.h>
-#include <TGraphErrors.h>
-#include <TLegend.h>
-
+#include <TH2D.h>
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
 #include "TRestAxionField.h"
@@ -26,7 +26,7 @@
 //*** - Bykovskiy2020: Magnetic field map with 1cm precision in XY axes and 5cm in Z axis for the babyIAXO magnet.
 //***
 //*** Default Arguments:
-//*** - nData: Number of data points to generate (default: 50).
+//*** - nData: Number of data points to generate (default: 20).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - m1: First axion mass in eV (default: 0.1).
 //***  -m2: Second axion mass in eV (default: 0.01).
@@ -57,12 +57,12 @@ struct FieldInfo {
 
 constexpr bool kDebug = true;
 
-Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 50, Double_t Ea = 4.2, Double_t m1 = 0.1, Double_t m2 = 0.01, std::string gasName = "He",
+Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 20, Double_t Ea = 4.2, Double_t m1 = 0.1, Double_t m2 = 0.01, std::string gasName = "He",
                                   Double_t accuracy = 0.1, Int_t num_intervals = 100, Int_t qawo_levels = 20) {
     // Create Variables
     const char* cfgFileName = "fields.rml";
-    TVector3 position(-10, 10, -10000);
-    TVector3 direction = (position - TVector3(10, -10 , 9000)).Unit();
+    TVector3 position(-10, 10, -11000);
+    TVector3 direction = (position - TVector3(10, -10 , 11000)).Unit();
     Double_t gasDensity = 2.9868e-10;
 
     // Define all four fields
@@ -145,13 +145,17 @@ Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 50, Double_t Ea = 4.2, Double_t 
 
         // Open the file for writing
         std::string filename;
+        std::string folder = "BMapsAnalysis/";
+        if (!std::filesystem::exists(folder)) {
+            std::filesystem::create_directory(folder);
+        }
         if (ma == (gas != nullptr ? gas->GetPhotonMass(Ea) : 0)) {
-            filename = "REST_AXION_FieldBMaps_results_OnResonance.txt";
+            filename = folder + "REST_AXION_FieldBMaps_results_OnResonance.txt";
         } else {
             // Format the ma value with precision to two decimal places
             std::ostringstream oss;
             oss << std::fixed << std::setprecision(2) << ma;
-            filename = "REST_AXION_FieldBMaps_results_OffResonance_Mass_" + oss.str() + ".txt";
+            filename = folder + "REST_AXION_FieldBMaps_results_OffResonance_Mass_" + oss.str() + ".txt";
         }
                 
         // Debug message: Opening file

@@ -3,14 +3,20 @@
 #include <vector>
 #include <fstream>
 #include <map>
+#include <numeric>
+#include <iomanip>
+#include <sstream>
+#include <memory>
+#include <filesystem>
 
 #include <TCanvas.h>
+#include <TH2D.h>
 #include <TGraphErrors.h>
 #include <TLegend.h>
+#include <TMultiGraph.h>
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
 #include "TRestAxionField.h"
-#include <TLatex.h>
 
 //*******************************************************************************************************
 //*** Description: This script performs analysis on multiple magnetic field maps, calculating the 
@@ -24,11 +30,12 @@
 //*** - Bykovskiy2020: Magnetic field map with 1cm precision in XY axes and 5cm in Z axis for the babyIAXO magnet.
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 100).
+//*** - nData: Number of data points to generate (default: 200).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Name of the gas used in the buffer gas (default: "He").
 //*** - mi: Initial axion mass in eV (default: 0).
 //*** - mf: Final axion mass in eV (default: 0.5).
+//*** - useLogScale: whether to use y-axis in log scale (default: true)
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::SetTrack`,
@@ -51,13 +58,13 @@ constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
 Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", 
-                                            Double_t mi = 0, Double_t mf = 0.5) {
+                                            Double_t mi = 0, Double_t mf = 0.5, Bool_t useLogScale = true) {
 
     /// Definition of variables
     const char* cfgFileName = "fields.rml";
     Double_t gasDensity = 2.9868e-10;
-    TVector3 position(-100, -100 ,-11000);
-    TVector3 direction(0.01, 0.01 ,1);
+    TVector3 position(-10, 10, -11000);
+    TVector3 direction = (position - TVector3(10, -10 , 11000)).Unit();
     std::vector<Double_t> mass;
 
     // Define all four fields
@@ -135,6 +142,10 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
                 
                 graph->SetLineColor(colorIndex);
                 graph->SetLineWidth(1);
+
+                if (useLogScale) {
+                    canvas1->SetLogy();
+                }
                 
                 graph->Draw((field.first == "Bykovskiy2019") ? "ACP" : "L SAME");
                 graphs1.push_back(graph);
@@ -165,6 +176,10 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
 
                 graph->SetLineColor(colorIndex);
                 graph->SetLineWidth(1);
+
+                if (useLogScale) {
+                    canvas2->SetLogy();
+                }
 
                 graph->Draw((field.first == "Mentisk") ? "ACP" : "L SAME");
                 graphs2.push_back(graph);
@@ -211,9 +226,26 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         mg->GetYaxis()->SetLabelSize(0.025);
 
         if (kSave) {
-            canvas1->SaveAs("BykovskiyProbabilityMap.png");
-            canvas2->SaveAs("MentiskProbabilityMap.png");
-            canvas3->SaveAs("RunTimeFieldMaps.png");
+            std::string folder = "BMapsAnalysis/";
+            if (!std::filesystem::exists(folder)) {
+                std::filesystem::create_directory(folder);
+            }
+            std::string fileNameB, fileNameM, fileNameR;
+            fileNameB = folder + "BykovskiyProbabilityMap";
+            fileNameM = folder + "MentiskProbabilityMap";
+            fileNameR = folder + "RunTimeFieldMaps";
+            if (useLogScale) {
+                fileNameB += "_log.png";
+                fileNameM += "_log.png";
+                fileNameR += "_log.png";
+            } else {
+                fileNameB += ".png";
+                fileNameM += ".png";
+                fileNameR += ".png";
+            }
+            canvas1->SaveAs(fileNameB.c_str());
+            canvas2->SaveAs(fileNameM.c_str());
+            canvas3->SaveAs(fileNameR.c_str());
         }
     }
 
