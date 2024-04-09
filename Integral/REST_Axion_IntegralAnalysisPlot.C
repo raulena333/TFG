@@ -45,14 +45,14 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.3, 
-            Double_t mf = 0.4, Bool_t useLogScale = false, Double_t dL = 10){
+Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
+            Double_t mf = 0.5, Bool_t useLogScale = true, Double_t dL = 10){
 
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
     Double_t gasDensity = 2.9836e-10;
-    TVector3 position(-5, 5, -9000);
-    TVector3 fPosition(5, -5 , 9000);
+    TVector3 position(-5, 5, -11000);
+    TVector3 fPosition(5, -5 , 11000);
     TVector3 direction = (position - fPosition).Unit();
     std::vector<Double_t> mass;
 
@@ -61,12 +61,12 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
     }
 
     for(const auto &fieldName : fieldNames){
-        // CHANGE ACCURACY OF 2ND MAP
+        // CHANGE ACCURACY OF 2ND MAP (review)
         Double_t accuracy;
         if(fieldName == "babyIAXO_2024_cutoff")
-            accuracy = 0.1;
+            accuracy = 0.2;
         else
-            accuracy = 0.25;
+            accuracy = 0.2;
 
         std::map<std::string, TypeIntegration> integrations = {
             {"Standard-Integral", {}},
@@ -196,7 +196,7 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
             }
 
             graphsRun[0]->SetTitle("Axion Mass vs RunTime");
-            graphsRun[0]->GetYaxis()->SetTitle("RunTime (μs)");
+            graphsRun[0]->GetYaxis()->SetTitle("RunTime (#mu s)");
             graphsRun[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
             graphsRun[0]->GetXaxis()->SetTitleSize(0.03);
             graphsRun[0]->GetYaxis()->SetTitleSize(0.03);
@@ -217,11 +217,10 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
                 canvasRun->SaveAs((folder + fileNameRun).c_str());
             }
 
-        delete canvasProb;
-        delete canvasRun;
-        delete legendProb;
-        delete legendRun;
-
+            delete canvasProb;
+            delete canvasRun;
+            delete legendProb;
+            delete legendRun;
         }
     }
     return 0;

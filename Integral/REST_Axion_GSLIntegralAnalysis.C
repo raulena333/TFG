@@ -25,7 +25,7 @@
 //*** - nData: Number of data points to generate (default: 20).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Name of the buffer gas (default: "He").
-//*** - m: Axion mass (default: 0.25).
+//*** - m: Axion mass (default: 0.01).
 //*** - num_intervals_max: Maximum number of intervals for GSL integration (default: 500).
 //*** - num_intervals_min: Minimum number of intervals for GSL integration (default: 50).
 //*** - qawo_levels_max: Maximum number of QAWO levels for GSL integration (default: 150).
@@ -42,14 +42,16 @@
 constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
+constexpr int kNumBins = 100;
 
-Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::string gasName = "He", Double_t m = 0.25,
+Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string gasName = "He", Double_t m = 0.01,
                                      Int_t num_intervals_max = 500, Int_t num_intervals_min = 50,
                                      Int_t qawo_levels_max = 150, Int_t qawo_levels_min = 10) {
     auto start_time_final = std::chrono::high_resolution_clock::now();
 
     // Create Variables
-    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
+    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", //"babyIAXO_2024"
+    };
     Double_t gasDensity = 2.9836e-10;
     TVector3 position(-5, 5, -11000);
     TVector3 direction = (position - TVector3(5, -5, 11000)).Unit();
@@ -102,14 +104,14 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::s
 
             // Create 2D histograms
             auto histRuntime = std::make_unique<TH2D>("histRuntime", "Runtime vs Num_intervals vs Qawo_levels",
-                                                       nData, num_intervals_min, num_intervals_max,
-                                                       nData, qawo_levels_min, qawo_levels_max);
+                                                       kNumBins, num_intervals_min, num_intervals_max,
+                                                       kNumBins, qawo_levels_min, qawo_levels_max);
             auto histProbability = std::make_unique<TH2D>("histProbability", "Probability vs  Num_intervals vs Qawo_levels",
-                                                           nData, num_intervals_min, num_intervals_max,
-                                                           nData, qawo_levels_min, qawo_levels_max);
+                                                           kNumBins, num_intervals_min, num_intervals_max,
+                                                           kNumBins, qawo_levels_min, qawo_levels_max);
             auto histError = std::make_unique<TH2D>("histError", "Error vs  Num_intervals vs Qawo_levels",
-                                                     nData, num_intervals_min, num_intervals_max,
-                                                     nData, qawo_levels_min, qawo_levels_max);
+                                                     kNumBins, num_intervals_min, num_intervals_max,
+                                                     kNumBins, qawo_levels_min, qawo_levels_max);
 
             for(const auto &num_interval : num_intervals){
                 if(kDebug){
@@ -149,41 +151,23 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::s
             // Draw histograms on canvases
             canvasRuntime->cd();
             histRuntime->SetStats(0);
-            histRuntime->GetXaxis()->SetLabelSize(0.03);
-            histRuntime->GetXaxis()->SetLabelFont(22); 
-            histRuntime->GetXaxis()->SetTitleSize(0.03); 
-            histRuntime->GetXaxis()->SetTitleFont(22);  
-            histRuntime->GetYaxis()->SetLabelSize(0.03);
-            histRuntime->GetYaxis()->SetLabelFont(22);
-            histRuntime->GetYaxis()->SetTitleSize(0.03);
-            histRuntime->GetYaxis()->SetTitleFont(22); 
-            histRuntime->GetZaxis()->SetLabelSize(0.03);
+            histRuntime->GetXaxis()->SetTitle("Number of intervals");
+            histRuntime->GetYaxis()->SetTitle("Qawo levels");
+            histRuntime->GetZaxis()->SetTitle("Runtime (ms)");
             histRuntime->Draw("COLZ");
 
             canvasProbability->cd();
             histProbability->SetStats(0);
-            histProbability->GetXaxis()->SetLabelSize(0.03);
-            histProbability->GetXaxis()->SetLabelFont(22); 
-            histProbability->GetXaxis()->SetTitleSize(0.03);
-            histProbability->GetXaxis()->SetTitleFont(22); 
-            histProbability->GetYaxis()->SetLabelSize(0.03); 
-            histProbability->GetYaxis()->SetLabelFont(22);
-            histProbability->GetYaxis()->SetTitleSize(0.03);
-            histProbability->GetYaxis()->SetTitleFont(22); 
-            histProbability->GetZaxis()->SetLabelSize(0.02);
+            histProbability->GetXaxis()->SetTitle("Number of intervals");
+            histProbability->GetYaxis()->SetTitle("Qawo levels");
+            histProbability->GetZaxis()->SetTitle("Probability");
             histProbability->Draw("COLZ");
 
             canvasError->cd();
             histError->SetStats(0);
-            histError->GetXaxis()->SetLabelSize(0.03);
-            histError->GetXaxis()->SetLabelFont(22); 
-            histError->GetXaxis()->SetTitleSize(0.03);
-            histError->GetXaxis()->SetTitleFont(22); 
-            histError->GetYaxis()->SetLabelSize(0.03); 
-            histError->GetYaxis()->SetLabelFont(22);
-            histError->GetYaxis()->SetTitleSize(0.03);
-            histError->GetYaxis()->SetTitleFont(22); 
-            histError->GetZaxis()->SetLabelSize(0.02);
+            histError->GetXaxis()->SetTitle("Number of intervals");
+            histError->GetYaxis()->SetTitle("Qawo levels");
+            histError->GetZaxis()->SetTitle("Error");
             histError->Draw("COLZ");
 
 
