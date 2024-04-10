@@ -11,7 +11,7 @@
 
 #include <TCanvas.h>
 #include <TH2D.h>
-#include <TGraph.h> // Add this include for TGraph
+#include <TGraph.h> 
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
 #include "TRestAxionField.h"
@@ -41,7 +41,6 @@
 constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
-constexpr int kNumBins = 100;
 
 Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 200, Int_t nMass = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.25, 
             Double_t mf = 0.45, Int_t dLinitial = 1, Int_t dLfinal = 1000){
@@ -94,12 +93,12 @@ Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 200, Int_t nMass = 100, 
         axionField->AssignMagneticField(magneticField.get());
 
         // Create TCanvas for plotting
-        auto canvasRuntime = std::make_unique<TCanvas>((fieldName + "_Runtime").c_str(), (fieldName + "_Runtime").c_str(), 850, 673);
-        auto canvasProbability = std::make_unique<TCanvas>((fieldName + "_Probability").c_str(), (fieldName + "_Probability").c_str(), 850, 673);
+        auto canvasRuntime = std::make_unique<TCanvas>((fieldName + "_Runtime").c_str(), (fieldName + "_Runtime").c_str(), 850, 800);
+        auto canvasProbability = std::make_unique<TCanvas>((fieldName + "_Probability").c_str(), (fieldName + "_Probability").c_str(), 850, 800);
         
         // Create 2D histograms
-        auto histRuntime = std::make_unique<TH2D>("histRuntime", "Runtime vs Mass vs dL", kNumBins, mi, mf, kNumBins, dLinitial, dLfinal);
-        auto histProbability = std::make_unique<TH2D>("histProbability", "Probability vs Mass vs dL", kNumBins, mi, mf, kNumBins, dLinitial, dLfinal);
+        auto histRuntime = std::make_unique<TH2D>("histRuntime", "Runtime vs Mass vs dL", nMass, mi, mf, nData, dLinitial, dLfinal);
+        auto histProbability = std::make_unique<TH2D>("histProbability", "Probability vs Mass vs dL", nMass, mi, mf, nData, dLinitial, dLfinal);
 
         std::vector<TGraph*> graphProb;
         std::vector<std::vector<Double_t>> probabilityValues(dLvalues.size());
@@ -163,14 +162,62 @@ Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 200, Int_t nMass = 100, 
         histRuntime->GetXaxis()->SetTitle("Axion Mass (eV)");
         histRuntime->GetYaxis()->SetTitle("dL (mm)");
         histRuntime->GetZaxis()->SetTitle("Runtime (#mu s)");
+        histRuntime->GetXaxis()->SetTitleSize(0.03); 
+        histRuntime->GetXaxis()->SetTitleFont(40);  
+        histRuntime->GetXaxis()->SetLabelSize(0.025); 
+        histRuntime->GetXaxis()->SetLabelFont(40);  
+        histRuntime->GetYaxis()->SetTitleSize(0.03); 
+        histRuntime->GetYaxis()->SetTitleFont(40);  
+        histRuntime->GetYaxis()->SetLabelSize(0.025); 
+        histRuntime->GetYaxis()->SetLabelFont(40); 
+        histRuntime->GetYaxis()->SetTitleOffset(1.2);
+        histRuntime->GetYaxis()->SetLabelOffset(0.012); 
+        histRuntime->GetXaxis()->SetTitleOffset(1.1);
+        histRuntime->GetXaxis()->SetLabelOffset(0.012);
+
+        histRuntime->GetZaxis()->SetTitleSize(0.03); 
+        histRuntime->GetZaxis()->SetTitleFont(40);  
+        histRuntime->GetZaxis()->SetLabelSize(0.025); 
+        histRuntime->GetZaxis()->SetLabelFont(40); 
+        histRuntime->GetZaxis()->SetTitleOffset(1.45);
+        histRuntime->GetZaxis()->SetLabelOffset(0.012);
+
+        histRuntime->SetContour(100);
+        gStyle->SetPalette(kRainBow); 
+        gPad->SetRightMargin(0.15);
         histRuntime->Draw("COLZ");
+        canvasRuntime->Update();
 
         canvasProbability->cd();
         histProbability->SetStats(0);
         histProbability->GetXaxis()->SetTitle("Axion Mass (eV)");
         histProbability->GetYaxis()->SetTitle("dL (mm)");
         histProbability->GetZaxis()->SetTitle("Probability");
+        histProbability->GetXaxis()->SetTitleSize(0.03); 
+        histProbability->GetXaxis()->SetTitleFont(40);  
+        histProbability->GetXaxis()->SetLabelSize(0.025); 
+        histProbability->GetXaxis()->SetLabelFont(40);  
+        histProbability->GetYaxis()->SetTitleSize(0.03); 
+        histProbability->GetYaxis()->SetTitleFont(40);  
+        histProbability->GetYaxis()->SetLabelSize(0.025); 
+        histProbability->GetYaxis()->SetLabelFont(40); 
+        histProbability->GetYaxis()->SetTitleOffset(1.2);
+        histProbability->GetYaxis()->SetLabelOffset(0.015);
+        histProbability->GetXaxis()->SetTitleOffset(1.1);
+        histProbability->GetXaxis()->SetLabelOffset(0.015);
+
+        histProbability->GetZaxis()->SetTitleSize(0.03); 
+        histProbability->GetZaxis()->SetTitleFont(40);  
+        histProbability->GetZaxis()->SetLabelSize(0.025); 
+        histProbability->GetZaxis()->SetLabelFont(40); 
+        histProbability->GetZaxis()->SetTitleOffset(1.45);
+        histProbability->GetZaxis()->SetLabelOffset(0.012);
+
+        histProbability->SetContour(100);
+        gStyle->SetPalette(kRainBow); 
+        gPad->SetRightMargin(0.15);
         histProbability->Draw("COLZ");
+        canvasProbability->Update();
 
         // Save the plots if required
         if (kSave) {

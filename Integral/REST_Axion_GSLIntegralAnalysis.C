@@ -10,7 +10,7 @@
 #include <filesystem>
 
 #include <TCanvas.h>
-#include <TH3D.h>
+#include <TH2D.h>
 #include "TRestAxionMagneticField.h"
 #include "TRestAxionBufferGas.h"
 #include "TRestAxionField.h"
@@ -42,16 +42,14 @@
 constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
-constexpr int kNumBins = 100;
 
-Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string gasName = "He", Double_t m = 0.01,
+Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 5, Double_t Ea = 4.2, std::string gasName = "He", Double_t m = 0.01,
                                      Int_t num_intervals_max = 500, Int_t num_intervals_min = 50,
                                      Int_t qawo_levels_max = 150, Int_t qawo_levels_min = 10) {
     auto start_time_final = std::chrono::high_resolution_clock::now();
 
     // Create Variables
-    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", //"babyIAXO_2024"
-    };
+    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
     Double_t gasDensity = 2.9836e-10;
     TVector3 position(-5, 5, -11000);
     TVector3 direction = (position - TVector3(5, -5, 11000)).Unit();
@@ -98,20 +96,20 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::s
             }
 
             // Create TCanvas for plotting
-            auto canvasRuntime = std::make_unique<TCanvas>((fieldName + "_Runtime").c_str(), (fieldName + "_Runtime").c_str(), 850, 673);
-            auto canvasProbability = std::make_unique<TCanvas>((fieldName + "_Probability").c_str(), (fieldName + "_Probability").c_str(), 850, 673);
-            auto canvasError = std::make_unique<TCanvas>((fieldName + "_Error").c_str(), (fieldName + "_Error").c_str(), 850, 673);
+            auto canvasRuntime = std::make_unique<TCanvas>((fieldName + "_Runtime").c_str(), (fieldName + "_Runtime").c_str(), 850, 700);
+            auto canvasProbability = std::make_unique<TCanvas>((fieldName + "_Probability").c_str(), (fieldName + "_Probability").c_str(), 850, 700);
+            auto canvasError = std::make_unique<TCanvas>((fieldName + "_Error").c_str(), (fieldName + "_Error").c_str(), 850, 700);
 
             // Create 2D histograms
             auto histRuntime = std::make_unique<TH2D>("histRuntime", "Runtime vs Num_intervals vs Qawo_levels",
-                                                       kNumBins, num_intervals_min, num_intervals_max,
-                                                       kNumBins, qawo_levels_min, qawo_levels_max);
+                                                       nData, num_intervals_min, num_intervals_max,
+                                                       nData, qawo_levels_min, qawo_levels_max);
             auto histProbability = std::make_unique<TH2D>("histProbability", "Probability vs  Num_intervals vs Qawo_levels",
-                                                           kNumBins, num_intervals_min, num_intervals_max,
-                                                           kNumBins, qawo_levels_min, qawo_levels_max);
+                                                           nData, num_intervals_min, num_intervals_max,
+                                                           nData, qawo_levels_min, qawo_levels_max);
             auto histError = std::make_unique<TH2D>("histError", "Error vs  Num_intervals vs Qawo_levels",
-                                                     kNumBins, num_intervals_min, num_intervals_max,
-                                                     kNumBins, qawo_levels_min, qawo_levels_max);
+                                                     nData, num_intervals_min, num_intervals_max,
+                                                     nData, qawo_levels_min, qawo_levels_max);
 
             for(const auto &num_interval : num_intervals){
                 if(kDebug){
@@ -154,21 +152,92 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::s
             histRuntime->GetXaxis()->SetTitle("Number of intervals");
             histRuntime->GetYaxis()->SetTitle("Qawo levels");
             histRuntime->GetZaxis()->SetTitle("Runtime (ms)");
+            histRuntime->GetXaxis()->SetTitleSize(0.03); 
+            histRuntime->GetXaxis()->SetTitleFont(40);  
+            histRuntime->GetXaxis()->SetLabelSize(0.025); 
+            histRuntime->GetXaxis()->SetLabelFont(40);  
+            histRuntime->GetYaxis()->SetTitleSize(0.03); 
+            histRuntime->GetYaxis()->SetTitleFont(40);  
+            histRuntime->GetYaxis()->SetLabelSize(0.025); 
+            histRuntime->GetYaxis()->SetLabelFont(40); 
+            histRuntime->GetYaxis()->SetTitleOffset(1.2);
+            histRuntime->GetYaxis()->SetLabelOffset(0.012); 
+            histRuntime->GetXaxis()->SetTitleOffset(1.1);
+            histRuntime->GetXaxis()->SetLabelOffset(0.012);
+
+            histRuntime->GetZaxis()->SetTitleSize(0.03); 
+            histRuntime->GetZaxis()->SetTitleFont(40);  
+            histRuntime->GetZaxis()->SetLabelSize(0.025); 
+            histRuntime->GetZaxis()->SetLabelFont(40); 
+            histRuntime->GetZaxis()->SetTitleOffset(1.45);
+            histRuntime->GetZaxis()->SetLabelOffset(0.012);
+
+            histRuntime->SetContour(100);
+            gStyle->SetPalette(kRainBow); 
+            gPad->SetRightMargin(0.15);
             histRuntime->Draw("COLZ");
+            canvasRuntime->Update();
 
             canvasProbability->cd();
             histProbability->SetStats(0);
             histProbability->GetXaxis()->SetTitle("Number of intervals");
             histProbability->GetYaxis()->SetTitle("Qawo levels");
             histProbability->GetZaxis()->SetTitle("Probability");
+            histProbability->GetXaxis()->SetTitleSize(0.03); 
+            histProbability->GetXaxis()->SetTitleFont(40);  
+            histProbability->GetXaxis()->SetLabelSize(0.025); 
+            histProbability->GetXaxis()->SetLabelFont(40);  
+            histProbability->GetYaxis()->SetTitleSize(0.03); 
+            histProbability->GetYaxis()->SetTitleFont(40);  
+            histProbability->GetYaxis()->SetLabelSize(0.025); 
+            histProbability->GetYaxis()->SetLabelFont(40); 
+            histProbability->GetYaxis()->SetTitleOffset(1.2);
+            histProbability->GetYaxis()->SetLabelOffset(0.015);
+            histProbability->GetXaxis()->SetTitleOffset(1.1);
+            histProbability->GetXaxis()->SetLabelOffset(0.015);
+
+            histProbability->GetZaxis()->SetTitleSize(0.03); 
+            histProbability->GetZaxis()->SetTitleFont(40);  
+            histProbability->GetZaxis()->SetLabelSize(0.025); 
+            histProbability->GetZaxis()->SetLabelFont(40); 
+            histProbability->GetZaxis()->SetTitleOffset(1.45);
+            histProbability->GetZaxis()->SetLabelOffset(0.012);
+
+            histProbability->SetContour(100);
+            gStyle->SetPalette(kRainBow); 
+            gPad->SetRightMargin(0.15);
             histProbability->Draw("COLZ");
+            canvasProbability->Update();
 
             canvasError->cd();
             histError->SetStats(0);
             histError->GetXaxis()->SetTitle("Number of intervals");
             histError->GetYaxis()->SetTitle("Qawo levels");
             histError->GetZaxis()->SetTitle("Error");
+            histError->GetXaxis()->SetTitleSize(0.03); 
+            histError->GetXaxis()->SetTitleFont(40);  
+            histError->GetXaxis()->SetLabelSize(0.025); 
+            histError->GetXaxis()->SetLabelFont(40);  
+            histError->GetYaxis()->SetTitleSize(0.03); 
+            histError->GetYaxis()->SetTitleFont(40);  
+            histError->GetYaxis()->SetLabelSize(0.025); 
+            histError->GetYaxis()->SetLabelFont(40); 
+            histError->GetYaxis()->SetTitleOffset(1.2);
+            histError->GetYaxis()->SetLabelOffset(0.015); 
+            histError->GetXaxis()->SetTitleOffset(1.1);
+            histError->GetXaxis()->SetLabelOffset(0.015);
+            
+            histError->GetZaxis()->SetTitleSize(0.03); 
+            histError->GetZaxis()->SetTitleFont(40);  
+            histError->GetZaxis()->SetLabelSize(0.025); 
+            histError->GetZaxis()->SetLabelFont(40); 
+            histError->GetZaxis()->SetTitleOffset(1.45);
+            histError->GetZaxis()->SetLabelOffset(0.012);
+            histError->SetContour(100);
+            gStyle->SetPalette(kRainBow); 
+            gPad->SetRightMargin(0.15);
             histError->Draw("COLZ");
+            canvasError->Update();
 
 
             // Save the plots if required
