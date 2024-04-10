@@ -46,7 +46,6 @@
 constexpr bool kDebug = true;
 constexpr bool kSave = true;
 constexpr bool kPlot = true;
-constexpr int kNumBins = 100; // Number of bins for histograms
 
 // Function to select randomly nTracks of dx and dy
 void selectDxy(const std::vector<Double_t>& dx, const std::vector<Double_t>& dy, Int_t nTracks, std::vector<Double_t>& selectedDx, std::vector<Double_t>& selectedDy);
@@ -58,7 +57,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
                                     Double_t dL = 10, const std::string& gasName = "He", Double_t nTracks = 2) {
 
     auto start_time_code = std::chrono::high_resolution_clock::now();                                    
-    const TVector3 startPoint(0, 0, -7000);
+    const TVector3 startPoint(0, 0, -11000);
     const Double_t gasDensity = 9.345e-10;
     std::vector<Double_t> dx, dy, selectedDx, selectedDy;
 
@@ -96,7 +95,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
     // Fill in an use DrawTracks ti visualize the Tracks we choose
     for(size_t t = 0; t < selectedDx.size(); t++){
         startPoints.push_back(startPoint);
-        endPoints.push_back(TVector3(selectedDx[t], selectedDy[t], 7000));
+        endPoints.push_back(TVector3(selectedDx[t], selectedDy[t], 11000));
     }
 
     for (const auto& fieldName : fieldNames) {
@@ -107,15 +106,15 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
         if(kPlot)
             field->DrawTracks(startPoints, endPoints, 100, kSave);
 
-        auto canvasHeatMapProbGSL = std::make_unique<TCanvas>((fieldName + "_Probability_HeatmapsGSL").c_str(), (fieldName + " Probability HeatmapsGSL").c_str(), 900, 700);
-        auto canvasHeatMapRunTimeGSL = std::make_unique<TCanvas>((fieldName + "_Runtime_HeatmapsGSL").c_str(), (fieldName + " Runtime Heatmaps").c_str(), 900, 700);
-        auto canvasHeatMapProbStandard = std::make_unique<TCanvas>((fieldName + "_Probability_HeatmapsStandard").c_str(), (fieldName + " Probability HeatmapsStandard").c_str(), 900, 700);
-        auto canvasHeatMapRunTimeStandard = std::make_unique<TCanvas>((fieldName + "_Runtime_HeatmapsStandard").c_str(), (fieldName + " Runtime HeatmapsStandard").c_str(), 900, 700);
+        auto canvasHeatMapProbGSL = std::make_unique<TCanvas>((fieldName + "_Probability_HeatmapsGSL").c_str(), (fieldName + " Probability HeatmapsGSL").c_str(), 850, 700);
+        auto canvasHeatMapRunTimeGSL = std::make_unique<TCanvas>((fieldName + "_Runtime_HeatmapsGSL").c_str(), (fieldName + " Runtime Heatmaps").c_str(), 850, 700);
+        auto canvasHeatMapProbStandard = std::make_unique<TCanvas>((fieldName + "_Probability_HeatmapsStandard").c_str(), (fieldName + " Probability HeatmapsStandard").c_str(), 850, 700);
+        auto canvasHeatMapRunTimeStandard = std::make_unique<TCanvas>((fieldName + "_Runtime_HeatmapsStandard").c_str(), (fieldName + " Runtime HeatmapsStandard").c_str(), 850, 700);
 
-        auto heatmapProbStandard = std::make_unique<TH2D>(("ProbabilityStandard_" + fieldName).c_str(), (fieldName + " Heatmap Probability Standard").c_str(), kNumBins, dMin, dMax, kNumBins, dMin, dMax);
-        auto heatmapProbGSL = std::make_unique<TH2D>(("ProbabilityGSL_" + fieldName).c_str(), (fieldName + " Heatmap Probability GSL").c_str(), kNumBins, dMin, dMax, kNumBins, dMin, dMax);
-        auto heatmapRuntimeStandard = std::make_unique<TH2D>(("RuntimeStandard_" + fieldName).c_str(), (fieldName + " Heatmap Runtime Standard").c_str(), kNumBins, dMin, dMax, kNumBins, dMin, dMax);
-        auto heatmapRuntimeGSL = std::make_unique<TH2D>(("RuntimeGSL_" + fieldName).c_str(), (fieldName + " Heatmap Runtime GSL").c_str(), kNumBins, dMin, dMax, kNumBins, dMin, dMax);
+        auto heatmapProbStandard = std::make_unique<TH2D>(("ProbabilityStandard_" + fieldName).c_str(), (fieldName + " Heatmap Probability Standard").c_str(), nData, dMin, dMax, nData, dMin, dMax);
+        auto heatmapProbGSL = std::make_unique<TH2D>(("ProbabilityGSL_" + fieldName).c_str(), (fieldName + " Heatmap Probability GSL").c_str(), nData, dMin, dMax, nData, dMin, dMax);
+        auto heatmapRuntimeStandard = std::make_unique<TH2D>(("RuntimeStandard_" + fieldName).c_str(), (fieldName + " Heatmap Runtime Standard").c_str(), nData, dMin, dMax, nData, dMin, dMax);
+        auto heatmapRuntimeGSL = std::make_unique<TH2D>(("RuntimeGSL_" + fieldName).c_str(), (fieldName + " Heatmap Runtime GSL").c_str(), nData, dMin, dMax, nData, dMin, dMax);
 
         // Vector to hold probabilities for each selected dx
         std::vector<std::pair<std::vector<Double_t>, Double_t>> selectedDxProbabilitiesGSL(selectedDx.size());
@@ -135,7 +134,7 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
             Double_t xEnd = dx[i];
             for (size_t j = 0; j < nData; ++j) {
                 Double_t yEnd = dy[j];
-                TVector3 endPoint(xEnd, yEnd, 7000);
+                TVector3 endPoint(xEnd, yEnd, 11000);
 
                 auto start_time_standard = std::chrono::high_resolution_clock::now();
                 std::vector<Double_t> magneticValues_standard = field->GetTransversalComponentAlongPath(startPoint, endPoint, dL);
@@ -225,62 +224,124 @@ Int_t REST_Axion_AnalysisTracksTime(Double_t nData = 20, Double_t Ea = 4.2, Doub
         heatmapProbStandard->SetStats(0);
         heatmapProbStandard->GetXaxis()->SetTitle("dx");
         heatmapProbStandard->GetYaxis()->SetTitle("dy");
-        heatmapProbStandard->GetXaxis()->SetLabelSize(0.03);
-        heatmapProbStandard->GetXaxis()->SetLabelFont(22); 
-        heatmapProbStandard->GetXaxis()->SetTitleSize(0.03);
-        heatmapProbStandard->GetXaxis()->SetTitleFont(22);
-        heatmapProbStandard->GetYaxis()->SetLabelSize(0.03);
-        heatmapProbStandard->GetYaxis()->SetLabelFont(22); 
-        heatmapProbStandard->GetYaxis()->SetTitleSize(0.03);
-        heatmapProbStandard->GetYaxis()->SetTitleFont(22);
-        heatmapProbStandard->GetZaxis()->SetLabelSize(0.02);
-        heatmapProbStandard->Draw("colz");
+        heatmapProbStandard->GetZaxis()->SetTitle("Probability");
+        heatmapProbStandard->GetXaxis()->SetTitleSize(0.03); 
+        heatmapProbStandard->GetXaxis()->SetTitleFont(40);  
+        heatmapProbStandard->GetXaxis()->SetLabelSize(0.025); 
+        heatmapProbStandard->GetXaxis()->SetLabelFont(40);  
+        heatmapProbStandard->GetYaxis()->SetTitleSize(0.03); 
+        heatmapProbStandard->GetYaxis()->SetTitleFont(40);  
+        heatmapProbStandard->GetYaxis()->SetLabelSize(0.025); 
+        heatmapProbStandard->GetYaxis()->SetLabelFont(40); 
+        heatmapProbStandard->GetYaxis()->SetTitleOffset(1.2);
+        heatmapProbStandard->GetYaxis()->SetLabelOffset(0.012); 
+        heatmapProbStandard->GetXaxis()->SetTitleOffset(1.1);
+        heatmapProbStandard->GetXaxis()->SetLabelOffset(0.012);
+
+        heatmapProbStandard->GetZaxis()->SetTitleSize(0.03); 
+        heatmapProbStandard->GetZaxis()->SetTitleFont(40);  
+        heatmapProbStandard->GetZaxis()->SetLabelSize(0.025); 
+        heatmapProbStandard->GetZaxis()->SetLabelFont(40); 
+        heatmapProbStandard->GetZaxis()->SetTitleOffset(1.45);
+        heatmapProbStandard->GetZaxis()->SetLabelOffset(0.012);
+
+        heatmapProbStandard->SetContour(100);
+        gStyle->SetPalette(kRainBow); 
+        gPad->SetRightMargin(0.15);
+        heatmapProbStandard->Draw("COLZ");
+        canvasHeatMapProbStandard->Update();
 
 
         canvasHeatMapProbGSL->cd();
         heatmapProbGSL->SetStats(0);
         heatmapProbGSL->GetXaxis()->SetTitle("dx");
         heatmapProbGSL->GetYaxis()->SetTitle("dy");
-        heatmapProbGSL->GetXaxis()->SetLabelSize(0.03);
-        heatmapProbGSL->GetXaxis()->SetLabelFont(22); 
-        heatmapProbGSL->GetXaxis()->SetTitleSize(0.03);
-        heatmapProbGSL->GetXaxis()->SetTitleFont(22); 
-        heatmapProbGSL->GetYaxis()->SetLabelSize(0.03);
-        heatmapProbGSL->GetYaxis()->SetLabelFont(22); 
+        heatmapProbGSL->GetZaxis()->SetTitle("Probability");
+        heatmapProbGSL->GetXaxis()->SetTitleSize(0.03); 
+        heatmapProbGSL->GetXaxis()->SetTitleFont(40);  
+        heatmapProbGSL->GetXaxis()->SetLabelSize(0.025); 
+        heatmapProbGSL->GetXaxis()->SetLabelFont(40);  
         heatmapProbGSL->GetYaxis()->SetTitleSize(0.03); 
-        heatmapProbGSL->GetYaxis()->SetTitleFont(22); 
-        heatmapProbGSL->GetZaxis()->SetLabelSize(0.03);
-        heatmapProbGSL->Draw("colz");
+        heatmapProbGSL->GetYaxis()->SetTitleFont(40);  
+        heatmapProbGSL->GetYaxis()->SetLabelSize(0.025); 
+        heatmapProbGSL->GetYaxis()->SetLabelFont(40); 
+        heatmapProbGSL->GetYaxis()->SetTitleOffset(1.2);
+        heatmapProbGSL->GetYaxis()->SetLabelOffset(0.015);
+        heatmapProbGSL->GetXaxis()->SetTitleOffset(1.1);
+        heatmapProbGSL->GetXaxis()->SetLabelOffset(0.015);
+
+        heatmapProbGSL->GetZaxis()->SetTitleSize(0.03); 
+        heatmapProbGSL->GetZaxis()->SetTitleFont(40);  
+        heatmapProbGSL->GetZaxis()->SetLabelSize(0.025); 
+        heatmapProbGSL->GetZaxis()->SetLabelFont(40); 
+        heatmapProbGSL->GetZaxis()->SetTitleOffset(1.45);
+        heatmapProbGSL->GetZaxis()->SetLabelOffset(0.012);
+
+        heatmapProbGSL->SetContour(100);
+        gStyle->SetPalette(kRainBow); 
+        gPad->SetRightMargin(0.15);
+        heatmapProbGSL->Draw("COLZ");
+        canvasHeatMapProbGSL->Update();
 
         canvasHeatMapRunTimeStandard->cd();
         heatmapRuntimeStandard->SetStats(0);
         heatmapRuntimeStandard->GetXaxis()->SetTitle("dx");
         heatmapRuntimeStandard->GetYaxis()->SetTitle("dy");
-        heatmapRuntimeStandard->GetXaxis()->SetLabelSize(0.03);
-        heatmapRuntimeStandard->GetXaxis()->SetLabelFont(22); 
+        heatmapRuntimeStandard->GetZaxis()->SetTitle("Time (#mu s)");
         heatmapRuntimeStandard->GetXaxis()->SetTitleSize(0.03); 
-        heatmapRuntimeStandard->GetXaxis()->SetTitleFont(22);  
-        heatmapRuntimeStandard->GetYaxis()->SetLabelSize(0.03);
-        heatmapRuntimeStandard->GetYaxis()->SetLabelFont(22);
-        heatmapRuntimeStandard->GetYaxis()->SetTitleSize(0.03);
-        heatmapRuntimeStandard->GetYaxis()->SetTitleFont(22); 
-        heatmapRuntimeStandard->GetZaxis()->SetLabelSize(0.03);
-        heatmapRuntimeStandard->Draw("colz");
+        heatmapRuntimeStandard->GetXaxis()->SetTitleFont(40);  
+        heatmapRuntimeStandard->GetXaxis()->SetLabelSize(0.025); 
+        heatmapRuntimeStandard->GetXaxis()->SetLabelFont(40);  
+        heatmapRuntimeStandard->GetYaxis()->SetTitleSize(0.03); 
+        heatmapRuntimeStandard->GetYaxis()->SetTitleFont(40);  
+        heatmapRuntimeStandard->GetYaxis()->SetLabelSize(0.025); 
+        heatmapRuntimeStandard->GetYaxis()->SetLabelFont(40); 
+        heatmapRuntimeStandard->GetYaxis()->SetTitleOffset(1.2);
+        heatmapRuntimeStandard->GetYaxis()->SetLabelOffset(0.015); 
+        heatmapRuntimeStandard->GetXaxis()->SetTitleOffset(1.1);
+        heatmapRuntimeStandard->GetXaxis()->SetLabelOffset(0.015);
+            
+        heatmapRuntimeStandard->GetZaxis()->SetTitleSize(0.03); 
+        heatmapRuntimeStandard->GetZaxis()->SetTitleFont(40);  
+        heatmapRuntimeStandard->GetZaxis()->SetLabelSize(0.025); 
+        heatmapRuntimeStandard->GetZaxis()->SetLabelFont(40); 
+        heatmapRuntimeStandard->GetZaxis()->SetTitleOffset(1.45);
+        heatmapRuntimeStandard->GetZaxis()->SetLabelOffset(0.012);
+        heatmapRuntimeStandard->SetContour(100);
+        gStyle->SetPalette(kRainBow); 
+        gPad->SetRightMargin(0.15);
+        heatmapRuntimeStandard->Draw("COLZ");
+        canvasHeatMapRunTimeStandard->Update();
 
         canvasHeatMapRunTimeGSL->cd();
         heatmapRuntimeGSL->SetStats(0);
         heatmapRuntimeGSL->GetXaxis()->SetTitle("dx");
         heatmapRuntimeGSL->GetYaxis()->SetTitle("dy");
-        heatmapRuntimeGSL->GetXaxis()->SetLabelSize(0.03);
-        heatmapRuntimeGSL->GetXaxis()->SetLabelFont(22); 
-        heatmapRuntimeGSL->GetXaxis()->SetTitleSize(0.03);
-        heatmapRuntimeGSL->GetXaxis()->SetTitleFont(22); 
-        heatmapRuntimeGSL->GetYaxis()->SetLabelSize(0.03); 
-        heatmapRuntimeGSL->GetYaxis()->SetLabelFont(22);
-        heatmapRuntimeGSL->GetYaxis()->SetTitleSize(0.03);
-        heatmapRuntimeGSL->GetYaxis()->SetTitleFont(22); 
-        heatmapRuntimeGSL->GetZaxis()->SetLabelSize(0.02);
-        heatmapRuntimeGSL->Draw("colz");
+        heatmapRuntimeGSL->GetZaxis()->SetTitle("Error");
+        heatmapRuntimeGSL->GetXaxis()->SetTitleSize(0.03); 
+        heatmapRuntimeGSL->GetXaxis()->SetTitleFont(40);  
+        heatmapRuntimeGSL->GetXaxis()->SetLabelSize(0.025); 
+        heatmapRuntimeGSL->GetXaxis()->SetLabelFont(40);  
+        heatmapRuntimeGSL->GetYaxis()->SetTitleSize(0.03); 
+        heatmapRuntimeGSL->GetYaxis()->SetTitleFont(40);  
+        heatmapRuntimeGSL->GetYaxis()->SetLabelSize(0.025); 
+        heatmapRuntimeGSL->GetYaxis()->SetLabelFont(40); 
+        heatmapRuntimeGSL->GetYaxis()->SetTitleOffset(1.2);
+        heatmapRuntimeGSL->GetYaxis()->SetLabelOffset(0.015); 
+        heatmapRuntimeGSL->GetXaxis()->SetTitleOffset(1.1);
+        heatmapRuntimeGSL->GetXaxis()->SetLabelOffset(0.015);
+            
+        heatmapRuntimeGSL->GetZaxis()->SetTitleSize(0.03); 
+        heatmapRuntimeGSL->GetZaxis()->SetTitleFont(40);  
+        heatmapRuntimeGSL->GetZaxis()->SetLabelSize(0.025); 
+        heatmapRuntimeGSL->GetZaxis()->SetLabelFont(40); 
+        heatmapRuntimeGSL->GetZaxis()->SetTitleOffset(1.45);
+        heatmapRuntimeGSL->GetZaxis()->SetLabelOffset(0.012);
+        heatmapRuntimeGSL->SetContour(100);
+        gStyle->SetPalette(kRainBow); 
+        gPad->SetRightMargin(0.15);
+        heatmapRuntimeGSL->Draw("COLZ");
+        canvasHeatMapRunTimeGSL->Update();
 
         if (kSave) {
             std::string folder = "HeatMapsTracks/";
