@@ -45,8 +45,8 @@
 //*******************************************************************************************************
 
 struct FieldInfo {
-    TRestAxionMagneticField* magneticField;
-    TRestAxionField* axionField;
+    std::unique_ptr<TRestAxionMagneticField> magneticField;
+    std::unique_ptr<TRestAxionField> axionField;
 
     std::vector<double> probability;
     std::vector<double> error;
@@ -57,39 +57,40 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
+void FormatYAxisAsPercentage(TGraph* graph);
+
 Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", 
-                                            Double_t mi = 0, Double_t mf = 0.5, Bool_t useLogScale = true) {
+                                            Double_t mi = 0.2, Double_t mf = 0.5, Bool_t useLogScale = true) {
 
     /// Definition of variables
     const char* cfgFileName = "fields.rml";
-    Double_t gasDensity = 2.9868e-10;
-    TVector3 position(-10, 10, -11000);
-    TVector3 direction = (position - TVector3(10, -10 , 11000)).Unit();
+    const TVector3 position(-5, 5, -11000);
+    const TVector3 direction = (position - TVector3(5, -5, 11000)).Unit();
+    const Double_t gasDensity = 2.9868e-10;
     std::vector<Double_t> mass;
 
     // Define all four fields
-    std::map<std::string, FieldInfo> fields = {
-        {"MentiskCut", {new TRestAxionMagneticField(cfgFileName, "babyIAXO_2024_cutoff"), new TRestAxionField()}},
-        {"Mentisk", {new TRestAxionMagneticField(cfgFileName, "babyIAXO_2024"), new TRestAxionField()}},
-        {"Bykovskiy2019", {new TRestAxionMagneticField(cfgFileName, "babyIAXO"), new TRestAxionField()}},
-        {"Bykovskiy2020", {new TRestAxionMagneticField(cfgFileName, "babyIAXO_HD"), new TRestAxionField()}}
-    };
+    std::map<std::string, FieldInfo> fields;
+    fields["MentiskCut"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO_2024_cutoff"), std::make_unique<TRestAxionField>()};
+    fields["Mentisk"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO_2024"), std::make_unique<TRestAxionField>()};
+    fields["Bykovskiy2019"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO"), std::make_unique<TRestAxionField>()};
+    fields["Bykovskiy2020"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO_HD"), std::make_unique<TRestAxionField>()};
 
     // Set up buffer gas
-    TRestAxionBufferGas* gas = nullptr;
+    std::unique_ptr<TRestAxionBufferGas> gas = nullptr;
     if (!gasName.empty()) {
-        gas = new TRestAxionBufferGas();
+        gas = std::make_unique<TRestAxionBufferGas>();
         gas->SetGasDensity(gasName, gasDensity);
     }
 
     // Set up Axion field
     for (auto& field : fields) {
         if (gas != nullptr) {
-            field.second.axionField->AssignBufferGas(gas);
+            field.second.axionField->AssignBufferGas(gas.get());
         }
         field.second.magneticField->SetTrack(position, direction);
-        field.second.axionField->AssignMagneticField(field.second.magneticField);
-    }
+        field.second.axionField->AssignMagneticField(field.second.magneticField.get());
+    } 
 
     // Calculate transmission probability and computation time for each field map for each mass
     Double_t step = (mf - mi) / nData;
@@ -128,13 +129,13 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
 
     if (kPlot) {
         /// PLOT ///
-        TCanvas* canvas1 = new TCanvas("canvas1", "Bykovskiy2019 vs Bykovskiy2020", 800, 600);
-        TCanvas* canvas2 = new TCanvas("canvas2", "Mentisk vs MentiskCut", 850, 637);
+        TCanvas* canvas1 = new TCanvas("canvas1", "", 800, 600);
+        TCanvas* canvas2 = new TCanvas("canvas2", "", 800, 600);
 
         // Canvas 1 - Bykovskiy2019 vs Bykovskiy2020
         canvas1->cd();
         std::vector<TGraphErrors*> graphs1;
-        TLegend* legendB = new TLegend(0.7, 0.7, 0.9, 0.9);
+        TLegend* legendB = new TLegend(0.1, 0.8, 0.3, 0.9);
         Int_t colorIndex = 1;
         for (auto& field : fields) {
             if (field.first == "Bykovskiy2019" || field.first == "Bykovskiy2020") {
@@ -155,13 +156,18 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         }
 
         // Set axis labels for canvas 1
+        graphs1[0]->SetTitle("");
         graphs1[0]->GetXaxis()->SetTitle("Mass (eV)");
         graphs1[0]->GetYaxis()->SetTitle("Probability");
-        graphs1[0]->SetTitle("Bykovskiy2019 vs Bykovskiy2020");
-        graphs1[0]->GetXaxis()->SetTitleSize(0.04);
-        graphs1[0]->GetXaxis()->SetLabelSize(0.03);
-        graphs1[0]->GetYaxis()->SetTitleSize(0.04);
-        graphs1[0]->GetYaxis()->SetLabelSize(0.03);
+        graphs1[0]->GetXaxis()->SetRange(mi, mf);
+        graphs1[0]->GetXaxis()->SetTitleSize(0.03); 
+        graphs1[0]->GetXaxis()->SetTitleFont(40);  
+        graphs1[0]->GetXaxis()->SetLabelSize(0.025); 
+        graphs1[0]->GetXaxis()->SetLabelFont(40);  
+        graphs1[0]->GetYaxis()->SetTitleSize(0.03); 
+        graphs1[0]->GetYaxis()->SetTitleFont(40);  
+        graphs1[0]->GetYaxis()->SetLabelSize(0.025); 
+        graphs1[0]->GetYaxis()->SetLabelFont(40); 
 
         legendB->Draw();
 
@@ -169,7 +175,7 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         canvas2->cd();
 
         std::vector<TGraphErrors*> graphs2;
-        TLegend* legendM = new TLegend(0.7, 0.7, 0.9, 0.9);
+        TLegend* legendM = new TLegend(0.1, 0.8, 0.3, 0.9);
         for (auto& field : fields) {
             if (field.first == "Mentisk" || field.first == "MentiskCut") {
                 TGraphErrors* graph = new TGraphErrors(nData, &mass[0], &field.second.probability[0], 0, &field.second.error[0]);
@@ -189,20 +195,25 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         }
 
         // Set axis labels for canvas 2
+        graphs2[0]->SetTitle("");
         graphs2[0]->GetXaxis()->SetTitle("Mass (eV)");
         graphs2[0]->GetYaxis()->SetTitle("Probability");
-        graphs2[0]->SetTitle("Mentisk vs MentiskCut");
-        graphs2[0]->GetXaxis()->SetTitleSize(0.04);
-        graphs2[0]->GetXaxis()->SetLabelSize(0.03);
-        graphs2[0]->GetYaxis()->SetTitleSize(0.04);
-        graphs2[0]->GetYaxis()->SetLabelSize(0.03);
+        graphs2[0]->GetXaxis()->SetRange(mi, mf);
+        graphs2[0]->GetXaxis()->SetTitleSize(0.03); 
+        graphs2[0]->GetXaxis()->SetTitleFont(40);  
+        graphs2[0]->GetXaxis()->SetLabelSize(0.025); 
+        graphs2[0]->GetXaxis()->SetLabelFont(40);  
+        graphs2[0]->GetYaxis()->SetTitleSize(0.03); 
+        graphs2[0]->GetYaxis()->SetTitleFont(40);  
+        graphs2[0]->GetYaxis()->SetLabelSize(0.025); 
+        graphs2[0]->GetYaxis()->SetLabelFont(40); 
 
         legendM->Draw();
 
-        TCanvas* canvas3 = new TCanvas("canvas3", "Mass vs Runtime", 800, 600);
+        TCanvas* canvas3 = new TCanvas("canvas3", "", 800, 600);
         canvas3->cd();
         TMultiGraph* mg = new TMultiGraph();
-        TLegend* legend = new TLegend(0.7, 0.7, 0.9, 0.9);
+        TLegend* legend = new TLegend(0.1, 0.75, 0.3, 0.9);
         colorIndex = 1;
 
         for (auto& field : fields) {
@@ -219,11 +230,16 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         mg->Draw("ACP");
         mg->GetXaxis()->SetTitle("Mass (eV)");
         mg->GetYaxis()->SetTitle("Runtime (ms)");
+        mg->GetXaxis()->SetRange(mi, mf);
         legend->Draw();
-        mg->GetXaxis()->SetTitleSize(0.035);
-        mg->GetXaxis()->SetLabelSize(0.025);
-        mg->GetYaxis()->SetTitleSize(0.035);
-        mg->GetYaxis()->SetLabelSize(0.025);
+        mg->GetXaxis()->SetTitleSize(0.03); 
+        mg->GetXaxis()->SetTitleFont(40);  
+        mg->GetXaxis()->SetLabelSize(0.025); 
+        mg->GetXaxis()->SetLabelFont(40);  
+        mg->GetYaxis()->SetTitleSize(0.03); 
+        mg->GetYaxis()->SetTitleFont(40);  
+        mg->GetYaxis()->SetLabelSize(0.025); 
+        mg->GetYaxis()->SetLabelFont(40); 
 
         if (kSave) {
             std::string folder = "BMapsAnalysis/";
@@ -247,13 +263,73 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
             canvas2->SaveAs(fileNameM.c_str());
             canvas3->SaveAs(fileNameR.c_str());
         }
-    }
 
-    delete gas;
-    for (auto& field : fields) {
-        delete field.second.magneticField;
-        delete field.second.axionField;
-    }
+        // Create a TCanvas for the Bykovskiy residuals
+        TCanvas* canvas4 = new TCanvas("canvas4", "", 500, 300);
+        canvas4->cd();
 
+        std::vector<Double_t> residualsBykovskiy;
+        for (unsigned j = 0; j < nData; j++) {
+            residualsBykovskiy.push_back(fields["Bykovskiy2019"].probability[j] - fields["Bykovskiy2020"].probability[j]);
+        }
+
+        TGraph* residualGraphBykovskiy = new TGraph(nData, &mass[0], &residualsBykovskiy[0]);
+        residualGraphBykovskiy->SetMarkerStyle(8); 
+        residualGraphBykovskiy->SetMarkerSize(0.4);  
+        residualGraphBykovskiy->SetTitle("");
+        residualGraphBykovskiy->GetXaxis()->SetTitle("Mass (eV)");
+        residualGraphBykovskiy->GetYaxis()->SetTitle("Residual");
+        residualGraphBykovskiy->GetXaxis()->SetTitleSize(0.04);
+        residualGraphBykovskiy->GetXaxis()->SetLabelSize(0.03);
+        residualGraphBykovskiy->GetYaxis()->SetTitleSize(0.04);
+        residualGraphBykovskiy->GetYaxis()->SetLabelSize(0.03);
+        residualGraphBykovskiy->GetYaxis()->SetTitleFont(62);
+        residualGraphBykovskiy->GetYaxis()->SetTitleOffset(0.8);
+        residualGraphBykovskiy->GetXaxis()->SetTitleFont(62); 
+        residualGraphBykovskiy->GetYaxis()->SetLabelFont(62);
+        residualGraphBykovskiy->GetXaxis()->SetLabelFont(62);
+
+        residualGraphBykovskiy->GetXaxis()->SetRange(mi, mf); 
+        residualGraphBykovskiy->Draw("AP");
+
+        // Create a TCanvas for the Mentisk residuals
+        TCanvas* canvas5 = new TCanvas("canvas5", "", 500, 300);
+        canvas5->cd();
+
+        std::vector<Double_t> residualsMentisk;
+        for (unsigned j = 0; j < nData; j++) {
+            residualsMentisk.push_back(fields["Mentisk"].probability[j] - fields["MentiskCut"].probability[j]);
+        }
+
+        TGraph* residualGraphMentisk = new TGraph(nData, &mass[0], &residualsMentisk[0]);
+        residualGraphMentisk->SetMarkerStyle(8); 
+        residualGraphMentisk->SetMarkerSize(0.4); 
+        residualGraphMentisk->SetTitle(""); 
+        residualGraphMentisk->GetXaxis()->SetTitle("Mass (eV)");
+        residualGraphMentisk->GetYaxis()->SetTitle("Residual");
+        residualGraphMentisk->GetXaxis()->SetTitleSize(0.04);
+        residualGraphMentisk->GetXaxis()->SetLabelSize(0.03);
+        residualGraphMentisk->GetYaxis()->SetTitleSize(0.04);
+        residualGraphMentisk->GetYaxis()->SetLabelSize(0.03);
+        residualGraphMentisk->GetYaxis()->SetTitleFont(62);     
+        residualGraphMentisk->GetYaxis()->SetTitleOffset(0.8);
+        residualGraphMentisk->GetXaxis()->SetTitleFont(62); 
+        residualGraphMentisk->GetYaxis()->SetLabelFont(62);     
+        residualGraphMentisk->GetXaxis()->SetLabelFont(62); 
+
+        residualGraphMentisk->GetXaxis()->SetRange(mi, mf);  
+        residualGraphMentisk->Draw("AP");
+
+
+        // Save the plots if kSave is true
+        if (kSave) {
+            std::string fileNameBykovskiyResidual = "BykovskiyResidual.png";
+            canvas4->SaveAs(fileNameBykovskiyResidual.c_str());  
+            std::string fileNameMentiskResidual = "MentiskResidual.png";
+            canvas5->SaveAs(fileNameMentiskResidual.c_str());   
+        }
+
+    }
     return 0;
 }
+
