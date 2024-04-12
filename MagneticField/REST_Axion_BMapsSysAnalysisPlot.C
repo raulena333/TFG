@@ -196,7 +196,7 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
 
         // Set axis labels for canvas 2
         graphs2[0]->SetTitle("");
-        graphs2[0]->GetXaxis()->SetTitle("Mass (eV)");
+        graphs2[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
         graphs2[0]->GetYaxis()->SetTitle("Probability");
         graphs2[0]->GetXaxis()->SetRange(mi, mf);
         graphs2[0]->GetXaxis()->SetTitleSize(0.03); 
@@ -228,7 +228,7 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         }
 
         mg->Draw("ACP");
-        mg->GetXaxis()->SetTitle("Mass (eV)");
+        mg->GetXaxis()->SetTitle("Axion Mass (eV)");
         mg->GetYaxis()->SetTitle("Runtime (ms)");
         mg->GetXaxis()->SetRange(mi, mf);
         legend->Draw();
@@ -277,7 +277,7 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         residualGraphBykovskiy->SetMarkerStyle(8); 
         residualGraphBykovskiy->SetMarkerSize(0.4);  
         residualGraphBykovskiy->SetTitle("");
-        residualGraphBykovskiy->GetXaxis()->SetTitle("Mass (eV)");
+        residualGraphBykovskiy->GetXaxis()->SetTitle("Axion Mass (eV)");
         residualGraphBykovskiy->GetYaxis()->SetTitle("Residual");
         residualGraphBykovskiy->GetXaxis()->SetTitleSize(0.04);
         residualGraphBykovskiy->GetXaxis()->SetLabelSize(0.03);
@@ -305,7 +305,7 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         residualGraphMentisk->SetMarkerStyle(8); 
         residualGraphMentisk->SetMarkerSize(0.4); 
         residualGraphMentisk->SetTitle(""); 
-        residualGraphMentisk->GetXaxis()->SetTitle("Mass (eV)");
+        residualGraphMentisk->GetXaxis()->SetTitle("Axion Mass (eV)");
         residualGraphMentisk->GetYaxis()->SetTitle("Residual");
         residualGraphMentisk->GetXaxis()->SetTitleSize(0.04);
         residualGraphMentisk->GetXaxis()->SetLabelSize(0.03);
@@ -323,9 +323,10 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
 
         // Save the plots if kSave is true
         if (kSave) {
-            std::string fileNameBykovskiyResidual = "BykovskiyResidual.png";
+            std::string folder = "BMapsAnalysis/";
+            std::string fileNameBykovskiyResidual = folder + "BykovskiyResidual.png";
             canvas4->SaveAs(fileNameBykovskiyResidual.c_str());  
-            std::string fileNameMentiskResidual = "MentiskResidual.png";
+            std::string fileNameMentiskResidual = folder + "MentiskResidual.png";
             canvas5->SaveAs(fileNameMentiskResidual.c_str());   
         }
 
