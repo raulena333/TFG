@@ -121,36 +121,63 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 200, Double_t Ea = 4.2, std::
 
             if (kPlot) {
                 TCanvas *canvas = new TCanvas((fieldName + "_Analysis").c_str(), (fieldName + "_Analysis").c_str(), 800, 600);
-                canvas->Divide(1, 3); // Divide canvas into 1 row and 3 columns
+                canvas->Divide(1, 3);
 
                 // First pad for the probability integration plot
                 canvas->cd(1);
                 TGraph *graphProb = new TGraph(nData, &accuracyValues[0], &probValues[0]);
-                graphProb->SetTitle("Probability vs. Accuracy for Mass: " + std::to_string(ma));
+                graphProb->SetTitle("");
                 graphProb->SetMarkerStyle(8); 
                 graphProb->SetMarkerSize(0.4);  
                 graphProb->GetXaxis()->SetTitle("Accuracy");
                 graphProb->GetYaxis()->SetTitle("Probability");
+                graphProb->GetXaxis()->SetRange(accuracyInitial, accuracyFinal);
+                graphProb->GetXaxis()->SetTitleSize(0.03); 
+                graphProb->GetXaxis()->SetTitleFont(40);  
+                graphProb->GetXaxis()->SetLabelSize(0.025); 
+                graphProb->GetXaxis()->SetLabelFont(40);  
+                graphProb->GetYaxis()->SetTitleSize(0.03); 
+                graphProb->GetYaxis()->SetTitleFont(40);  
+                graphProb->GetYaxis()->SetLabelSize(0.025); 
+                graphProb->GetYaxis()->SetLabelFont(40); 
                 graphProb->Draw("AP");
 
                 // Second pad for the error integration plot
                 canvas->cd(2);
                 TGraph *graphError = new TGraph(nData, &accuracyValues[0], &errorValues[0]);
-                graphError->SetTitle("Error vs. Accuracy for Mass: " + std::to_string(ma));
+                graphError->SetTitle("");
                 graphError->SetMarkerStyle(8); 
                 graphError->SetMarkerSize(0.4);  
                 graphError->GetXaxis()->SetTitle("Accuracy");
                 graphError->GetYaxis()->SetTitle("Error");
+                graphError->GetXaxis()->SetRange(accuracyInitial, accuracyFinal);
+                graphError->GetXaxis()->SetTitleSize(0.03); 
+                graphError->GetXaxis()->SetTitleFont(40);  
+                graphError->GetXaxis()->SetLabelSize(0.025); 
+                graphError->GetXaxis()->SetLabelFont(40);  
+                graphError->GetYaxis()->SetTitleSize(0.03); 
+                graphError->GetYaxis()->SetTitleFont(40);  
+                graphError->GetYaxis()->SetLabelSize(0.025); 
+                graphError->GetYaxis()->SetLabelFont(40); 
                 graphError->Draw("AP");
 
                 // Third pad for the runtime plot
                 canvas->cd(3);
                 TGraph *graphRuntime = new TGraph(nData, &accuracyValues[0], &runValues[0]);
-                graphRuntime->SetTitle("Runtime vs. Accuracy for Mass: " + std::to_string(ma));
+                graphRuntime->SetTitle("");
                 graphRuntime->SetMarkerStyle(8); 
                 graphRuntime->SetMarkerSize(0.4);  
                 graphRuntime->GetXaxis()->SetTitle("Accuracy");
                 graphRuntime->GetYaxis()->SetTitle("Runtime (ms)");
+                graphRuntime->GetXaxis()->SetRange(accuracyInitial, accuracyFinal);
+                graphRuntime->GetXaxis()->SetTitleSize(0.03); 
+                graphRuntime->GetXaxis()->SetTitleFont(40);  
+                graphRuntime->GetXaxis()->SetLabelSize(0.025); 
+                graphRuntime->GetXaxis()->SetLabelFont(40);  
+                graphRuntime->GetYaxis()->SetTitleSize(0.03); 
+                graphRuntime->GetYaxis()->SetTitleFont(40);  
+                graphRuntime->GetYaxis()->SetLabelSize(0.025); 
+                graphRuntime->GetYaxis()->SetLabelFont(40); 
                 graphRuntime->Draw("AP");
 
                 canvas->Update();
@@ -158,12 +185,16 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 200, Double_t Ea = 4.2, std::
                 // Save the canvas if required
                 if (kSave) {
                     std::string folder = "GSL_Integral_Analysis/";
+                    std::ostringstream ossMass;
+                    ossMass << std::fixed << std::setprecision(2) << ma;
                     if (!std::filesystem::exists(folder)) {
                         std::filesystem::create_directory(folder);
                     }
-                    canvas->SaveAs((folder + fieldName + "_Analysis_Mass_" + std::to_string(ma) + ".png").c_str());
+                    canvas->SaveAs((folder + fieldName + "_ProbabilityPlot_GSL_Mass_" + ossMass.str() + ".png").c_str());
                 }
             }
+
+            delete canvas;
         }     
     }
     return 0;

@@ -41,7 +41,7 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_StandardIntegralAnalysisMap(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.25, 
+Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.25, 
             Double_t m1 = 0.01, Double_t m2 = 0.1, Double_t m3 = 0.3, Int_t dLinitial = 1, Int_t dLfinal = 1000){
 
     // Create Variables
@@ -144,13 +144,13 @@ Int_t REST_Axion_StandardIntegralAnalysisMap(Int_t nData = 200, Double_t Ea = 4.
             graph->Draw("AP");
 
             if(kSave){
-                std::string folder = "IntegralAnalysisStandard/";
+                std::string folder = "Standard_Integral_Analysis/";
                 std::ostringstream ossMass;
                 ossMass << std::fixed << std::setprecision(2) << ma;
                 if (!std::filesystem::exists(folder)) {
                     std::filesystem::create_directory(folder);
                 }
-                canvas->SaveAs((folder + fieldName + "_ProbabilityPlotStandard_Mass_" + ossMass.str() + ".png").c_str());
+                canvas->SaveAs((folder + fieldName + "_ProbabilityPlot_Standard_Mass_" + ossMass.str() + ".png").c_str());
             }
         }     
     }
