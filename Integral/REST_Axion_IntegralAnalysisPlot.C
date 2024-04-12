@@ -23,10 +23,11 @@
 //*** Arguments by default are (in order):
 //*** - nData: Number of data points to generate (default: 100).
 //*** - Ea: Axion energy in keV (default: 4.2).
-//*** - mi: Initial axion mass in eV (default: 0.3).
-//*** - mf: Final axion mass in eV (default: 0.4).
+//*** - mi: Initial axion mass in eV (default: 0.2).
+//*** - mf: Final axion mass in eV (default: 0.5).
 //*** - useLogScale: Bool to set the y-axis to log scale for plotting (default: false).
 //*** - dL: Length of the integration step in mm (default: 10).
+//*** - accuracy: accuravcy level for GSl integration (default: 0.1).
 //***
 //*** Dependencies:
 //*** The generated data are the results from `TRestAxionMagneticField::SetTrack`,
@@ -46,14 +47,14 @@ constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
 Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
-            Double_t mf = 0.5, Bool_t useLogScale = true, Double_t dL = 10){
+            Double_t mf = 0.5, Bool_t useLogScale = true, Double_t dL = 10, Double_t accuracy = 0.1){
 
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
-    Double_t gasDensity = 2.9836e-10;
-    TVector3 position(-5, 5, -11000);
-    TVector3 fPosition(5, -5 , 11000);
-    TVector3 direction = (position - fPosition).Unit();
+    const Double_t gasDensity = 2.9836e-10;
+    const TVector3 position(-5, 5, -11000);
+    const TVector3 fPosition(5, -5 , 11000);
+    const TVector3 direction = (position - fPosition).Unit();
     std::vector<Double_t> mass;
 
     for(Int_t j = 0; j < nData; j++) {
@@ -61,13 +62,6 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
     }
 
     for(const auto &fieldName : fieldNames){
-        // CHANGE ACCURACY OF 2ND MAP (review)
-        Double_t accuracy;
-        if(fieldName == "babyIAXO_2024_cutoff")
-            accuracy = 0.2;
-        else
-            accuracy = 0.2;
-
         std::map<std::string, TypeIntegration> integrations = {
             {"Standard-Integral", {}},
             {"GSL-Integral", {}}
@@ -159,20 +153,25 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
                 graphsProb.push_back(graph);
             }
 
-            graphsProb[0]->SetTitle("Axion Mass vs Probability");
+            graphsProb[0]->SetTitle("");
             graphsProb[0]->GetYaxis()->SetTitle("Probability");
             graphsProb[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
-            graphsProb[0]->GetXaxis()->SetTitleSize(0.03);
-            graphsProb[0]->GetYaxis()->SetTitleSize(0.03);
-            graphsProb[0]->GetXaxis()->SetLabelSize(0.03);
-            graphsProb[0]->GetYaxis()->SetLabelSize(0.03);
+            graphsProb[0]->GetXaxis()->SetRange(mi, mf);
+            graphsProb[0]->GetXaxis()->SetTitleSize(0.03); 
+            graphsProb[0]->GetXaxis()->SetTitleFont(40);  
+            graphsProb[0]->GetXaxis()->SetLabelSize(0.025); 
+            graphsProb[0]->GetXaxis()->SetLabelFont(40);  
+            graphsProb[0]->GetYaxis()->SetTitleSize(0.03); 
+            graphsProb[0]->GetYaxis()->SetTitleFont(40);  
+            graphsProb[0]->GetYaxis()->SetLabelSize(0.025); 
+            graphsProb[0]->GetYaxis()->SetLabelFont(40); 
             legendProb->Draw();
 
             // Set logarithmic scale if required
             if (useLogScale)
                 canvasProb->SetLogy();
 
-            // Create the canvas to plot the runTime of each gas track
+           // Create the canvas to plot the runTime of each integral
             TCanvas *canvasRun = new TCanvas((fieldName + "_MassRunTime").c_str(), (fieldName + "_MassRun").c_str(), 850, 673);
             canvasRun->cd();
 
@@ -181,7 +180,11 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
             std::vector<TGraph*> graphsRun;
 
             for (const auto &integration : integrations) {
-                TGraph *graph = new TGraph(mass.size(), mass.data(), integration.second.timeComputation.data());
+                std::vector<double> runtime_seconds;
+                for (const auto &runtime_micros : integration.second.timeComputation) {
+                    runtime_seconds.push_back(runtime_micros * 1.0e-6); // Convert microseconds to seconds
+                }
+                TGraph *graph = new TGraph(mass.size(), mass.data(), runtime_seconds.data());
                 graph->SetLineColor(colorIndex);
                 graph->SetLineWidth(1);
                 if (colorIndex == 1) {
@@ -196,13 +199,47 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
             }
 
             graphsRun[0]->SetTitle("Axion Mass vs RunTime");
-            graphsRun[0]->GetYaxis()->SetTitle("RunTime (#mu s)");
+            graphsRun[0]->GetYaxis()->SetTitle("RunTime (s)");
             graphsRun[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
-            graphsRun[0]->GetXaxis()->SetTitleSize(0.03);
-            graphsRun[0]->GetYaxis()->SetTitleSize(0.03);
-            graphsRun[0]->GetXaxis()->SetLabelSize(0.03);
-            graphsRun[0]->GetYaxis()->SetLabelSize(0.03);
+            graphsRun[0]->GetXaxis()->SetRange(mi, mf);
+            graphsRun[0]->GetXaxis()->SetTitleSize(0.03); 
+            graphsRun[0]->GetXaxis()->SetTitleFont(40);  
+            graphsRun[0]->GetXaxis()->SetLabelSize(0.025); 
+            graphsRun[0]->GetXaxis()->SetLabelFont(40);  
+            graphsRun[0]->GetYaxis()->SetTitleSize(0.03); 
+            graphsRun[0]->GetYaxis()->SetTitleFont(40);  
+            graphsRun[0]->GetYaxis()->SetLabelSize(0.025); 
+            graphsRun[0]->GetYaxis()->SetLabelFont(40); 
             legendRun->Draw();
+
+            // Create the canvas to plot the residuals of probability between Standard and GSL integrals
+            TCanvas *canvasResiduals = new TCanvas((fieldName + "_Residuals").c_str(), (fieldName + "_Residuals").c_str(), 500, 300);
+            canvasResiduals->cd();
+
+            colorIndex = 1;
+            TLegend *legendResiduals = new TLegend(0.1, 0.8, 0.3, 0.9);
+            std::vector<double> residuals;
+
+            for (size_t j = 0; j < mass.size(); ++j) {
+                residuals.push_back(integrations["Standard-Integral"].probability[j] - integrations["GSL-Integral"].probability[j]);
+            }
+            TGraph *graphR = new TGraph(mass.size(), mass.data(), residuals.data());
+            graphR->SetMarkerStyle(8);
+            graphR->SetMarkerSize(0.4);
+            graphR->SetTitle("")
+            graphR->GetYaxis()->SetTitle("Residuals");
+            graphR->GetXaxis()->SetTitle("Axion Mass (eV)");
+            graphR->GetXaxis()->SetRange(mi, mf);
+            graphR->GetXaxis()->SetTitleSize(0.04);
+            graphR->GetXaxis()->SetLabelSize(0.03);
+            graphR->GetYaxis()->SetTitleSize(0.04);
+            graphR->GetYaxis()->SetLabelSize(0.03);
+            graphR->GetYaxis()->SetTitleFont(62);
+            graphR->GetYaxis()->SetTitleOffset(0.8);
+            graphR->GetXaxis()->SetTitleFont(62);
+            graphR->GetYaxis()->SetLabelFont(62);
+            graphR->GetXaxis()->SetLabelFont(62);
+            graphR->Draw("AP"); 
 
             // Save the plots if required
             if (kSave) {
@@ -213,14 +250,18 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
 
                 std::string fileNameProb = fieldName + "_ProbabilityIntegral.png";
                 std::string fileNameRun = fieldName + "_RunTimeIntegral.png";
+                std::string fileNameResiduals = fieldName + "_Residuals.png";
                 canvasProb->SaveAs((folder + fileNameProb).c_str());
                 canvasRun->SaveAs((folder + fileNameRun).c_str());
+                canvasResiduals->SaveAs((folder + fileNameResiduals).c_str());
             }
 
             delete canvasProb;
             delete canvasRun;
+            delete canvasResiduals;
             delete legendProb;
             delete legendRun;
+            delete legendResiduals;
         }
     }
     return 0;
