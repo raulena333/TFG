@@ -28,7 +28,7 @@
 //*** - Symmetric Points: Symmetrically positioned points with respect to the center along each axis.
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points (axionMass) to generate (default: 100).
+//*** - nData: Number of data points (axionMass) to generate (default: 200).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - mi: Initial Axion mass in eV (default: 0.).
@@ -50,7 +50,7 @@ struct FieldTrack {
     std::vector<double> probability;
 };
 
-Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 10, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
+Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
                                             Double_t mf = 0.5, Double_t dL = 100) {
     const bool fDebug = false;
     const bool fPlot = true;
@@ -185,14 +185,15 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 10, Double_t Ea = 4.2, 
                 TGraph *graph = new TGraph(probabilities.size(), &mass[0], probabilities.data());
                 graph->SetLineColor(colors[colorIndex]); 
                 graph->SetLineWidth(2);
-                graph->SetTitle((fieldName + " Probability against mass for different tracks").c_str());
+                graph->SetTitle("");
 
                 // Draw the graph on the canvas with "Same" option after the first graph
                 if (graphs.empty()) {
                     graph->Draw("ACP");
-                    graph->GetXaxis()->SetTitle("Mass (eV)");
+                    graph->GetXaxis()->SetTitle("Axion Mass (eV)");
                     graph->GetYaxis()->SetTitle("Probability");
                     graph->GetXaxis()->SetRange(mi, mf);
+                    graph->GetYaxis()->SetRangeUser(1e-31, 1e-18);
                     graph->GetXaxis()->SetTitleSize(0.03); 
                     graph->GetXaxis()->SetTitleFont(40);  
                     graph->GetXaxis()->SetLabelSize(0.025); 
@@ -202,6 +203,7 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 10, Double_t Ea = 4.2, 
                     graph->GetYaxis()->SetLabelSize(0.025); 
                 } else {
                     graph->Draw("CP SAME"); 
+                    graph->GetXaxis()->SetRange(mi, mf);
                 }
 
                 graphs.push_back(graph);
@@ -236,8 +238,8 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 10, Double_t Ea = 4.2, 
             std::vector<double> residualValues_random2_center;
             std::vector<double> residualValues_extreme2_center;
             for (size_t j = 0; j < mass.size(); ++j) {
-                double residual_random2_center = fieldTracks["Random2"].probability[j] - fieldTracks["Center"].probability[j];
-                double residual_extreme2_center = fieldTracks["Extreme2"].probability[j] - fieldTracks["Center"].probability[j];
+                double residual_random2_center = fieldTracks["Random1"].probability[j] - fieldTracks["Center"].probability[j];
+                double residual_extreme2_center = fieldTracks["Extreme1"].probability[j] - fieldTracks["Center"].probability[j];
                 residualValues_random2_center.push_back(residual_random2_center);
                 residualValues_extreme2_center.push_back(residual_extreme2_center);
             }
@@ -245,8 +247,8 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 10, Double_t Ea = 4.2, 
             // Create TGraphs for the residuals
             TGraph *residuals_random2_center = new TGraph(mass.size(), &mass[0], residualValues_random2_center.data());
             TGraph *residuals_extreme2_center = new TGraph(mass.size(), &mass[0], residualValues_extreme2_center.data());
-            residuals_random2_center->SetLineColor(kRed);
-            residuals_extreme2_center->SetLineColor(kMagenta);
+            residuals_random2_center->SetLineColor(kMagenta);
+            residuals_extreme2_center->SetLineColor(kBlue);
             residuals_random2_center->SetLineWidth(2);
             residuals_extreme2_center->SetLineWidth(2);
             
@@ -259,19 +261,21 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 10, Double_t Ea = 4.2, 
             residuals_random2_center->GetYaxis()->SetTitle("Residuals");
             residuals_random2_center->GetXaxis()->SetTitle("Axion Mass (eV)");
             residuals_random2_center->GetXaxis()->SetRange(mi, mf);
+            residuals_extreme2_center->GetXaxis()->SetRange(mi, mf);
+            residuals_random2_center->GetYaxis()->SetRangeUser(1e-67, 1e-19);
             residuals_random2_center->GetXaxis()->SetTitleSize(0.04);
             residuals_random2_center->GetXaxis()->SetLabelSize(0.03);
             residuals_random2_center->GetYaxis()->SetTitleSize(0.04);
             residuals_random2_center->GetYaxis()->SetLabelSize(0.03);
             residuals_random2_center->GetYaxis()->SetTitleFont(62);
-            residuals_random2_center->GetYaxis()->SetTitleOffset(0.8);
+            residuals_random2_center->GetYaxis()->SetTitleOffset(0.95);
             residuals_random2_center->GetXaxis()->SetTitleFont(62);
             residuals_random2_center->GetYaxis()->SetLabelFont(62);
             residuals_random2_center->GetXaxis()->SetLabelFont(62);
 
             // Add entries to the legend
-            legend_residuals->AddEntry(residuals_random2_center, "Random2", "l");
-            legend_residuals->AddEntry(residuals_extreme2_center, "Extreme2", "l");
+            legend_residuals->AddEntry(residuals_random2_center, "Random1", "l");
+            legend_residuals->AddEntry(residuals_extreme2_center, "Extreme1", "l");
             legend_residuals->Draw();
 
             canvas_residuals->SetLogy();
@@ -292,8 +296,6 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 10, Double_t Ea = 4.2, 
             delete residuals_extreme2_center;
             delete legend_residuals;
         }
-
-
         // Clean up
         delete axionField;
         delete field;
