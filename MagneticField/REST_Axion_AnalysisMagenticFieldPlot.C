@@ -192,10 +192,7 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2,
                     graph->GetXaxis()->SetTitle("Axion Mass (eV)");
                     graph->GetYaxis()->SetTitle("Probability");
                     graph->GetXaxis()->SetRange(mi, mf);
-                    if(fieldName == "babyIAXO_2024_cutoff")
-                        graph->GetYaxis()->SetRangeUser(1e-32, 1e-18);
-                    else
-                        graph->GetYaxis()->SetRangeUser(1e-30, 1e-18);
+                    graph->GetYaxis()->SetRangeUser(1e-30, 1e-18);
                     graph->GetXaxis()->SetTitleSize(0.03); 
                     graph->GetXaxis()->SetTitleFont(40);  
                     graph->GetXaxis()->SetLabelSize(0.025); 
