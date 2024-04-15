@@ -9,7 +9,8 @@
 #include "TRestAxionField.h"
 
 //*******************************************************************************************************
-//*** Description: 
+//*** Description: function designed to analyze and plot the probability of gamma transmission versus 
+//*** the axion mass under varying coherence lengths of the magnetic field.
 //***
 //*** Arguments by default are (in order):
 //*** - nData: Number of data points (axionMass) to generate (default: 100).
