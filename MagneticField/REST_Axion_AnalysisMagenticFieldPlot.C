@@ -51,7 +51,7 @@ struct FieldTrack {
 };
 
 Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
-                                            Double_t mf = 0.5, Double_t dL = 100) {
+                                            Double_t mf = 0.5, Double_t dL = 10) {
     const bool fDebug = false;
     const bool fPlot = true;
     const bool fSave = true;
