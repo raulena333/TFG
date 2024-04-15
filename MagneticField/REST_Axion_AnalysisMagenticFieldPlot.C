@@ -189,8 +189,8 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2,
                 // Draw the graph on the canvas with "Same" option after the first graph
                 if (graphs.empty()) {
                     graph->Draw("ACP");
-                    graph->GetXaxis()->SetTitle("Axion Mass (eV)");
-                    graph->GetYaxis()->SetTitle("Probability");
+                    graph->GetXaxis()->SetTitle("Masa Axión (eV)");
+                    graph->GetYaxis()->SetTitle("Probabilidad");
                     graph->GetXaxis()->SetRange(mi, mf);
                     graph->GetYaxis()->SetRangeUser(1e-30, 1e-18);
                     graph->GetXaxis()->SetTitleSize(0.03); 
@@ -253,11 +253,12 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2,
 
             // Draw residuals on the canvas
             canvas_residuals->cd(1);
+            gPad->SetLogy();
             residuals_random1_center->SetMarkerSize(0.3);
             residuals_random1_center->Draw("AP");
             residuals_random1_center->SetTitle("");
-            residuals_random1_center->GetYaxis()->SetTitle("Residuals (%)");
-            residuals_random1_center->GetXaxis()->SetTitle("Axion Mass (eV)");
+            residuals_random1_center->GetYaxis()->SetTitle("Residuos (%)");
+            residuals_random1_center->GetXaxis()->SetTitle("Masa Axión (eV)");
             residuals_random1_center->GetXaxis()->SetRange(mi, mf);
             residuals_random1_center->GetXaxis()->SetTitleSize(0.04);
             residuals_random1_center->GetXaxis()->SetLabelSize(0.03);
@@ -275,8 +276,8 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2,
             residuals_extreme1_center->SetMarkerSize(0.3);
             residuals_extreme1_center->Draw("AP");
             residuals_extreme1_center->SetTitle("");
-            residuals_extreme1_center->GetYaxis()->SetTitle("Residuals (%)");
-            residuals_extreme1_center->GetXaxis()->SetTitle("Axion Mass (eV)");
+            residuals_extreme1_center->GetYaxis()->SetTitle("Residuos (%)");
+            residuals_extreme1_center->GetXaxis()->SetTitle("Masa Axión (eV)");
             residuals_extreme1_center->GetXaxis()->SetRange(mi, mf);
             residuals_extreme1_center->GetXaxis()->SetTitleSize(0.04);
             residuals_extreme1_center->GetXaxis()->SetLabelSize(0.03);
