@@ -64,21 +64,21 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2,
     std::map<std::string, FieldTrack> fieldTracks;
 
     std::vector<TVector3> startPoints = {
-        TVector3(250, 0, -6100),
+        TVector3(0, 0, -6100),
         TVector3(350, 350, -6100),
         TVector3(-350, -350, -6100),
-        TVector3(-150, 20, -6100),
-        TVector3(-20, 220, -6100),
+        TVector3(-70, 20, -6100),
+        TVector3(-20, 120, -6100),
         TVector3(-50, -90, -6100),
-        TVector3(-150, 420, -6100)
+        TVector3(-250, 420, -6100)
     };
 
     std::vector<TVector3> endPoints = {
-        TVector3(-250, 0, 6100),
+        TVector3(0, 0, 6100),
         TVector3(-350, -350, 6100),
         TVector3(350, 350, 6100),
-        TVector3(-120, 70, 6100),
-        TVector3(-100, -170, 6100),
+        TVector3(-60, 70, 6100),
+        TVector3(100, -40, 6100),
         TVector3(70, -120, 6100),
         TVector3(-270, -500, 6100)
     };
