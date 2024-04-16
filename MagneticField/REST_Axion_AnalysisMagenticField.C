@@ -40,8 +40,6 @@
 //*** Author: Raul Ena
 //*******************************************************************************************************
 
-
-
 struct FieldTrack {
     TVector3 startPoint;
     TVector3 endPoint;
@@ -67,23 +65,23 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 10, Double_t Ea = 4.2, std:
     std::map<std::string, FieldTrack> fieldTracks;
 
     std::vector<TVector3> startPoints = {
-        TVector3(0, 0, -11000),
-        TVector3(-350, 350, -11000),
-        TVector3(-350, -350, -11000),
-        TVector3(-70, 20, -11000),
-        TVector3(-20, 60, -11000),
-        TVector3(-50, -90, -11000),
-        TVector3(250, 620, -11000)
+        TVector3(0, 0, -6100),
+        TVector3(-350, 350, -6100),
+        TVector3(-350, -350, -6100),
+        TVector3(-70, 20, -6100),
+        TVector3(-20, 120, -6100),
+        TVector3(-50, -90, -6100),
+        TVector3(-250, 420, -6100)
     };
 
     std::vector<TVector3> endPoints = {
-        TVector3(0, 0, 11000),
-        TVector3(350, -350, 11000),
-        TVector3(-350, -350, 11000),
-        TVector3(-60, 70, 11000),
-        TVector3(100, -40, 11000),
-        TVector3(80, -10, 11000),
-        TVector3(-270, -600, 11000)
+        TVector3(0, 0, 6100),
+        TVector3(350, -350, 6100),
+        TVector3(350, 350, 6100),
+        TVector3(-60, 70, 6100),
+        TVector3(100, -40, 6100),
+        TVector3(70, -120, 6100),
+        TVector3(-270, -500, 6100)
     };
 
     std::vector<std::string> trackNames = {

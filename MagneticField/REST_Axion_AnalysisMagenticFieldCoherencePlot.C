@@ -53,8 +53,8 @@ Int_t REST_Axion_AnalysisMagenticFieldCoherencePlot(Int_t nData = 200, Double_t 
     }
 
     std::vector<TGraph*> graphs;
-    std::vector<int> coherenceLengths = {500, 1000, 5000, 10000};
-    //std::vector<int> coherenceLengths = {1000, 5000, 10000, 50000};
+    std::vector<Int_t> coherenceLengths = {100, 500, 1000, 5000, 10000};
+    //std::vector<Int_t> coherenceLengths = {1000, 5000, 10000, 50000};
     for(const auto& Lcoh : coherenceLengths){
         if (kDebug) {
             std::cout << "+--------------------------------------------------------------------------+" << std::endl;
@@ -85,7 +85,7 @@ Int_t REST_Axion_AnalysisMagenticFieldCoherencePlot(Int_t nData = 200, Double_t 
         TLegend *legend = new TLegend(0.7, 0.7, 0.9, 0.9);
 
         // Define color options for the graphs
-        std::vector<Color_t> colors = {kBlack, kBlue, kRed, kGreen};
+        std::vector<Color_t> colors = {kBlack, kBlue, kRed, kGreen, kCyan};
 
         // Loop through each coherence length
         for (size_t j = 0; j < graphs.size(); j++) {
