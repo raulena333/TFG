@@ -84,7 +84,7 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 10, Double_t Ea = 4.2, std::string g
         else
             masses.push_back(gas != nullptr ? gas->GetPhotonMass(Ea) : 0);
     }
-
+    std::vector<Double_t> accuracyValues = {0.05, 0.1, 0.5};
     for(const auto &fieldName : fieldNames) {
         // Fill the struct 
         std::map<std::string, FieldTrack> fields;
@@ -109,7 +109,7 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 10, Double_t Ea = 4.2, std::string g
             field.second.axionField->AssignMagneticField(field.second.magneticField.get());
         }  
 
-        for(const auto &accuracy : {0.05, 0.1, 0.5}){
+        for(const auto &accuracy : accuracyValues){
             if(kDebug){
                 std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                 std::cout << "Accuracy value: " << accuracy << std::endl;
