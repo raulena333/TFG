@@ -13,11 +13,11 @@
 //*** the axion mass under varying coherence lengths of the magnetic field.
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points (axionMass) to generate (default: 100).
+//*** - nData: Number of data points (axionMass) to generate (default: 200).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
-//*** - mi: Initial Axion mass in eV (default: 0.).
-//*** - mf: Final Axion mass in eV (default: 0.4).
+//*** - mi: Initial Axion mass in eV (default: 0.2).
+//*** - mf: Final Axion mass in eV (default: 0.5).
 //*** - B: The magnetic field strength in Tesla (default: 2.0)
 //*** - useLogScale: Whether to use log scale for y-axis (default: true)
 //***
@@ -31,8 +31,8 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_AnalysisMagenticFieldCoherencePlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
-                                            Double_t mf = 0.5, Double_t B = 2.0, Bool_t useLogScale = true) {
+Int_t REST_Axion_AnalysisMagenticFieldCoherencePlot(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
+                                            Double_t mf = 0.5, Double_t B = 2., Bool_t useLogScale = true) {
     // Create Variables
     const Double_t gasDensity = 2.9836e-10;
     std::vector<Double_t> axionMass(nData);
@@ -53,7 +53,8 @@ Int_t REST_Axion_AnalysisMagenticFieldCoherencePlot(Int_t nData = 100, Double_t 
     }
 
     std::vector<TGraph*> graphs;
-    std::vector<int> coherenceLengths = {7000, 8000, 9000, 10000};
+    std::vector<int> coherenceLengths = {500, 1000, 5000, 10000};
+    //std::vector<int> coherenceLengths = {1000, 5000, 10000, 50000};
     for(const auto& Lcoh : coherenceLengths){
         if (kDebug) {
             std::cout << "+--------------------------------------------------------------------------+" << std::endl;
@@ -95,16 +96,21 @@ Int_t REST_Axion_AnalysisMagenticFieldCoherencePlot(Int_t nData = 100, Double_t 
             if (j == 0)
                 graph->Draw("ACP");
             else
-                graph->Draw("SAME");
+                graph->Draw("CP SAME");
         }
 
         graphs[0]->SetTitle("");
         graphs[0]->GetYaxis()->SetTitle("Probability");
         graphs[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
-        graphs[0]->GetXaxis()->SetTitleSize(0.03);
-        graphs[0]->GetYaxis()->SetTitleSize(0.03);
-        graphs[0]->GetXaxis()->SetLabelSize(0.03);
-        graphs[0]->GetYaxis()->SetLabelSize(0.03);
+        graphs[0]->GetXaxis()->SetRange(mi, mf);
+        graphs[0]->GetYaxis()->SetRangeUser(1e-27, 1e-18);
+        graphs[0]->GetXaxis()->SetTitleSize(0.03); 
+        graphs[0]->GetXaxis()->SetTitleFont(40);  
+        graphs[0]->GetXaxis()->SetLabelSize(0.025); 
+        graphs[0]->GetXaxis()->SetLabelFont(40);  
+        graphs[0]->GetYaxis()->SetTitleSize(0.03); 
+        graphs[0]->GetYaxis()->SetTitleFont(40);  
+        graphs[0]->GetYaxis()->SetLabelSize(0.025); 
 
         canvas->SetLogy(useLogScale);
         legend->Draw();   
@@ -113,12 +119,17 @@ Int_t REST_Axion_AnalysisMagenticFieldCoherencePlot(Int_t nData = 100, Double_t 
         // Save the canvas if required
         if (kSave) {                   
             std::string folder = "CoherenceAnalysis/";
+            std::ostringstream ossB;
+            ossB << std::fixed << std::setprecision(1) << B;
             if (!std::filesystem::exists(folder)) {
                 std::filesystem::create_directory(folder);
             }
-            std::string name = folder + "ProbabilityVsMass_ConstantField_" + std::to_string(B) + ".png"; 
+            std::string name = folder + "ProbabilityVsMass_ConstantField_B:" + ossB.str() + ".pdf"; 
             canvas->SaveAs(name.c_str());
         }
+
+        delete canvas;
+        delete legend;
     }
 
     return 0;

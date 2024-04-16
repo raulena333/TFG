@@ -28,7 +28,7 @@
 //*** - Symmetric Points: Symmetrically positioned points with respect to the center along each axis.
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points (axionMass) to generate (default: 150).
+//*** - nData: Number of data points (axionMass) to generate (default: 200).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - mi: Initial Axion mass in eV (default: 0.2).
@@ -50,8 +50,8 @@ struct FieldTrack {
     std::vector<double> probability;
 };
 
-Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
-                                            Double_t mf = 0.5, Double_t dL = 10) {
+Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
+                                            Double_t mf = 0.5, Double_t dL = 10.0) {
     const bool fDebug = false;
     const bool fPlot = true;
     const bool fSave = true;
@@ -64,27 +64,27 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2,
     std::map<std::string, FieldTrack> fieldTracks;
 
     std::vector<TVector3> startPoints = {
-        TVector3(0, 0, -6100),
-        TVector3(350, 350, -6100),
-        TVector3(-350, -350, -6100),
-        TVector3(-70, 20, -6100),
-        TVector3(-20, 120, -6100),
-        TVector3(-50, -90, -6100),
-        TVector3(-250, 420, -6100)
+        TVector3(0, 0, -11000),
+        TVector3(-350, 350, -11000),
+        TVector3(-350, -350, -11000),
+        TVector3(-70, 20, -11000),
+        TVector3(-20, 60, -11000),
+        TVector3(-50, -90, -11000),
+        TVector3(250, 620, -11000)
     };
 
     std::vector<TVector3> endPoints = {
-        TVector3(0, 0, 6100),
-        TVector3(-350, -350, 6100),
-        TVector3(350, 350, 6100),
-        TVector3(-60, 70, 6100),
-        TVector3(100, -40, 6100),
-        TVector3(70, -120, 6100),
-        TVector3(-270, -500, 6100)
+        TVector3(0, 0, 11000),
+        TVector3(350, -350, 11000),
+        TVector3(-350, -350, 11000),
+        TVector3(-60, 70, 11000),
+        TVector3(100, -40, 11000),
+        TVector3(80, -10, 11000),
+        TVector3(-270, -600, 11000)
     };
 
     std::vector<std::string> trackNames = {
-        "Center", "Extreme1", "Extreme2", "Random", "Random1", "Random2", "Outside"
+        "Central", "Extremo1", "Extremo2", "Random", "Random1", "Random2", "Outside"
     };
 
     // Populate fieldTracks
@@ -99,7 +99,7 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2,
         gas->SetGasDensity(gasName, gasDensity);
     }
 
-    std::vector<std::string> fieldNames ={"babyIAXO_2024_cutoff",  "babyIAXO_2024"};
+    std::vector<std::string> fieldNames ={"babyIAXO_2024_cutoff", "babyIAXO_2024"};
 
     for(const auto& fieldName : fieldNames){
 
@@ -169,7 +169,7 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2,
         if (fPlot) {
             // Create a canvas to display the main plot
             TCanvas *canvas = new TCanvas("canvas", "Probability vs. Magnetic Field", 800, 500);
-            TLegend *legend = new TLegend(0.7, 0.7, 0.9, 0.9);
+            TLegend *legend = new TLegend(0.75, 0.7, 0.9, 0.9);
 
             // Define color options for the graphs
             std::vector<Color_t> colors = {kYellow+1, kYellow-5, kGreen+1, kGreen-1, kCyan+1, kBlue+1, kMagenta+1, kRed+1};
@@ -192,7 +192,7 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2,
                     graph->GetXaxis()->SetTitle("Masa Axion (eV)");
                     graph->GetYaxis()->SetTitle("Probabilidad");
                     graph->GetXaxis()->SetRange(mi, mf);
-                    graph->GetYaxis()->SetRangeUser(1e-30, 1e-18);
+                    graph->GetYaxis()->SetRangeUser(1e-32, 1e-18);
                     graph->GetXaxis()->SetTitleSize(0.03); 
                     graph->GetXaxis()->SetTitleFont(40);  
                     graph->GetXaxis()->SetLabelSize(0.025); 
@@ -237,8 +237,8 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2,
             std::vector<double> residualValues_random1_center;
             std::vector<double> residualValues_extreme1_center;
             for (size_t j = 0; j < mass.size(); ++j) {
-                double residual_random1_center = std::abs((fieldTracks["Center"].probability[j] - fieldTracks["Random1"].probability[j])) / fieldTracks["Center"].probability[j] * 100.0;
-                double residual_extreme1_center = std::abs((fieldTracks["Center"].probability[j] - fieldTracks["Extreme1"].probability[j])) / fieldTracks["Center"].probability[j] * 100.0;
+                double residual_random1_center = std::abs((fieldTracks["Central"].probability[j] - fieldTracks["Random1"].probability[j])) / fieldTracks["Central"].probability[j] * 100.0;
+                double residual_extreme1_center = std::abs((fieldTracks["Central"].probability[j] - fieldTracks["Extremo1"].probability[j])) / fieldTracks["Central"].probability[j] * 100.0;
                 residualValues_random1_center.push_back(residual_random1_center);
                 residualValues_extreme1_center.push_back(residual_extreme1_center);
             }
@@ -310,6 +310,5 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 150, Double_t Ea = 4.2,
     }
     // Clean up
     delete gas;
-
     return 0;
 }

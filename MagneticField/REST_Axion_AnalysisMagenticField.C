@@ -26,7 +26,7 @@
 //*** - Outside Point: Physically impossible due to the alignment of the detector with the sun.
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 20).
+//*** - nData: Number of data points to generate (default: 10).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - m1: Axion mass in eV (default: 0.1).
@@ -53,7 +53,7 @@ struct FieldTrack {
     double timeGet;
 };
 
-Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 20, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.1,
+Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 10, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.1,
                                         Double_t m2 = 0.01, Double_t dL = 10.0) {
     const bool fDebug = true;
     const bool fPlot = true;
@@ -67,27 +67,27 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 20, Double_t Ea = 4.2, std:
     std::map<std::string, FieldTrack> fieldTracks;
 
     std::vector<TVector3> startPoints = {
-        TVector3(250, 0, -6100),
-        TVector3(350, 350, -6100),
-        TVector3(-350, -350, -6100),
-        TVector3(-150, 20, -6100),
-        TVector3(-20, 220, -6100),
-        TVector3(-50, -90, -6100),
-        TVector3(-150, 420, -6100)
+        TVector3(0, 0, -11000),
+        TVector3(-350, 350, -11000),
+        TVector3(-350, -350, -11000),
+        TVector3(-70, 20, -11000),
+        TVector3(-20, 60, -11000),
+        TVector3(-50, -90, -11000),
+        TVector3(250, 620, -11000)
     };
 
     std::vector<TVector3> endPoints = {
-        TVector3(-250, 0, 6100),
-        TVector3(-350, -350, 6100),
-        TVector3(350, 350, 6100),
-        TVector3(-120, 70, 6100),
-        TVector3(-100, -170, 6100),
-        TVector3(70, -120, 6100),
-        TVector3(-270, -500, 6100)
+        TVector3(0, 0, 11000),
+        TVector3(350, -350, 11000),
+        TVector3(-350, -350, 11000),
+        TVector3(-60, 70, 11000),
+        TVector3(100, -40, 11000),
+        TVector3(80, -10, 11000),
+        TVector3(-270, -600, 11000)
     };
 
     std::vector<std::string> trackNames = {
-        "Center", "Extreme1", "Extreme2", "Random", "Random1", "Random2", "Outside"
+        "Central", "Extremo1", "Extremo2", "Random", "Random1", "Random2", "Outside"
     };
 
     // Populate fieldTracks
