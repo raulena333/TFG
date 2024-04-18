@@ -130,7 +130,7 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
     }
 
     if (kPlot) {
-        std::vector<Color_t> colors = {kBlue-2, kMagenta-6, kYellow+3, kGreen+2};
+        std::vector<Color_t> colors = {kBlue+2, kMagenta-6, kYellow+3, kGreen+2};
         /// PLOT ///
         TCanvas* canvas1 = new TCanvas("canvas1", "", 800, 600);
         TCanvas* canvas2 = new TCanvas("canvas2", "", 800, 600);
@@ -218,13 +218,13 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
         TCanvas* canvas3 = new TCanvas("canvas3", "", 800, 600);
         canvas3->cd();
         TMultiGraph* mg = new TMultiGraph();
-        TLegend* legend = new TLegend(0.1, 0.75, 0.3, 0.9);
-        colorIndex = 1;
+        TLegend* legend = new TLegend(0.7, 0.75, 0.9, 0.9);
+        colorIndex = 0;
 
         for (auto& field : fields) {
             std::vector<double> runtime = field.second.timeComputation;
             TGraph* graph = new TGraph(nData, &mass[0], &runtime[0]);
-            graph->SetLineColor(colorIndex);
+            graph->SetLineColor(colors[colorIndex]);
             graph->SetLineWidth(1);
             graph->SetTitle(field.first.c_str());
             mg->Add(graph);
@@ -258,13 +258,13 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
             fileNameM = folder + "MentiskProbabilityMap_Acc_" + ossAccuracy.str();
             fileNameR = folder + "RunTimeFieldMaps_Acc_" + ossAccuracy.str();
             if (useLogScale) {
-                fileNameB += "_log.png";
-                fileNameM += "_log.png";
-                fileNameR += "_log.png";
+                fileNameB += "_log.pdf";
+                fileNameM += "_log.pdf";
+                fileNameR += "_log.pdf";
             } else {
-                fileNameB += ".png";
-                fileNameM += ".png";
-                fileNameR += ".png";
+                fileNameB += ".pdf";
+                fileNameM += ".pdf";
+                fileNameR += ".pdf";
             }
             canvas1->SaveAs(fileNameB.c_str());
             canvas2->SaveAs(fileNameM.c_str());
@@ -339,9 +339,9 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
             std::string folder = "BMapsAnalysis/";
             std::ostringstream ossAccuracy;
             ossAccuracy << std::fixed << std::setprecision(2) << accuracy;
-            std::string fileNameBykovskiyResidual = folder + "BykovskiyResidual_Acc_" + ossAccuracy.str() + ".png";
+            std::string fileNameBykovskiyResidual = folder + "BykovskiyResidual_Acc_" + ossAccuracy.str() + ".pdf";
             canvas4->SaveAs(fileNameBykovskiyResidual.c_str());  
-            std::string fileNameMentiskResidual = folder + "MentiskResidual_Acc_" + ossAccuracy.str() + ".png";
+            std::string fileNameMentiskResidual = folder + "MentiskResidual_Acc_" + ossAccuracy.str() + ".pdf";
             canvas5->SaveAs(fileNameMentiskResidual.c_str());   
         }
 
