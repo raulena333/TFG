@@ -26,7 +26,7 @@
 //*** - Bykovskiy2020: Magnetic field map with 1cm precision in XY axes and 5cm in Z axis for the babyIAXO magnet.
 //***
 //*** Default Arguments:
-//*** - nData: Number of data points to generate (default: 5).
+//*** - nData: Number of data points to generate (default: 10).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - m1: First axion mass in eV (default: 0.1).
 //***  -m2: Second axion mass in eV (default: 0.01).
@@ -56,7 +56,7 @@ struct FieldInfo {
 
 constexpr bool kDebug = true;
 
-Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 5, Double_t Ea = 4.2, Double_t m1 = 0.3, Double_t m2 = 0.01, std::string gasName = "He",
+Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 10, Double_t Ea = 4.2, Double_t m1 = 0.3, Double_t m2 = 0.01, std::string gasName = "He",
                                  Int_t num_intervals = 100, Int_t qawo_levels = 20) {
     // Create Variables
     const char* cfgFileName = "fields.rml";
@@ -71,6 +71,9 @@ Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 5, Double_t Ea = 4.2, Double_t m
     fields["Bykovskiy2019"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO"), std::make_unique<TRestAxionField>()};
     fields["Bykovskiy2020"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO_HD"), std::make_unique<TRestAxionField>()};
 
+    //Just for plotting the profile of all four maps
+    const std::vector<std::string> fieldNames = {"babyIAXO_2024", "babyIAXO", "babyIAXO_HD"};
+
     // Set up buffer gas
     std::unique_ptr<TRestAxionBufferGas> gas = nullptr;
     if (!gasName.empty()) {
@@ -78,11 +81,14 @@ Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 5, Double_t Ea = 4.2, Double_t m
         gas->SetGasDensity(gasName, gasDensity);
     }
 
-    // Set up Axion field
+    Int_t h = 1;
+    // Set up Axion field and assign magentic field, just plot all the maps once
     for (auto& field : fields) {
         if (gas != nullptr) {
             field.second.axionField->AssignBufferGas(gas.get());
         }
+        if(h == 1)
+            field.second.magneticField->DrawTrackProfile(TVector3(0,0,11000), 100, fieldNames, true);
         field.second.magneticField->SetTrack(position, direction);
         field.second.axionField->AssignMagneticField(field.second.magneticField.get());
     } 
@@ -96,7 +102,8 @@ Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 5, Double_t Ea = 4.2, Double_t m
             masses.push_back(gas != nullptr ? gas->GetPhotonMass(Ea) : 0);
     }
 
-    for (const auto &accuracy : {0.1, 0.5}){
+    std::vector<Double_t> accuracyValues = {0.1, 0.25, 0.5};
+    for (const auto &accuracy : accuracyValues){
         // Iterate over each mass and map field
         if(kDebug){    
             std::cout << "+--------------------------------------------------------------------------+" << std::endl;

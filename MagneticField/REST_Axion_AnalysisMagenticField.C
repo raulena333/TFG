@@ -85,7 +85,7 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 10, Double_t Ea = 4.2, std:
     };
 
     std::vector<std::string> trackNames = {
-        "Central", "Extremo1", "Extremo2", "Random", "Random1", "Random2", "Outside"
+        "Central", "Extremo1", "Extremo2", "Random", "Random1", "Random2", "Fuera"
     };
 
     // Populate fieldTracks

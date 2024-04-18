@@ -24,7 +24,7 @@
 //*** (20, 20, 100), (30, 30, 150), (50, 50, 250), (50, 50, 500)
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 200).
+//*** - nData: Number of data points to generate (default: 125).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - mi: Initial axion mass in eV (default: 0.2).
@@ -51,7 +51,7 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", 
+Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::string gasName = "He", 
                                   Double_t mi = 0.2, Double_t mf = 0.5, Bool_t useLogScale = true) {
     // Mesh Map Definitions in mm
     std::vector<TVector3> meshSizes = {
@@ -104,7 +104,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::str
         }  
 
         // Iterate for saome accuracys to test the runTime
-        std::vector<Double_t> accuracyValues = {0.05, 0.1, 0.5};
+        std::vector<Double_t> accuracyValues = {0.5, 1.};
         for(const auto &accuracy : accuracyValues){
             for (auto& field : fields) {
                 field.second.probability.clear();
@@ -164,6 +164,8 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::str
                     TGraphErrors *graph = new TGraphErrors(masses.size(), masses.data(), field.second.probability.data(), nullptr, field.second.error.data());
                     graph->SetLineColor(colors[colorIndex]);
                     graph->SetLineWidth(1);
+                    graph->GetYaxis()->SetRangeUser(1e-32, 1e-18);
+                    graph->SetTitle("");
                     if (colorIndex == 1) {
                         graph->Draw("ACP");
                     } else {
@@ -182,7 +184,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::str
                 graphsProb[0]->GetYaxis()->SetTitle("Probabilidad");
                 graphsProb[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
                 graphsProb[0]->GetXaxis()->SetRange(mi, mf);
-                graphsProb[0]->GetYaxis()->SetRangeUser(1e-33, 1e-18);
+                graphsProb[0]->GetYaxis()->SetRangeUser(1e-32, 1e-18);
                 graphsProb[0]->GetXaxis()->SetTitleSize(0.03); 
                 graphsProb[0]->GetXaxis()->SetTitleFont(40);  
                 graphsProb[0]->GetXaxis()->SetLabelSize(0.025); 
@@ -209,6 +211,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::str
                     TGraph *graph = new TGraph(masses.size(), masses.data(), field.second.timeComputation.data());
                     graph->SetLineColor(colors[colorIndex]);
                     graph->SetLineWidth(1);
+                    graph->SetTitle("");
                     if (colorIndex == 1) {
                         graph->Draw("ACP");
                     } else {

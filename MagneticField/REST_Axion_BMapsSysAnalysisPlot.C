@@ -30,7 +30,7 @@
 //*** - Bykovskiy2020: Magnetic field map with 1cm precision in XY axes and 5cm in Z axis for the babyIAXO magnet.
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 200).
+//*** - nData: Number of data points to generate (default: 150).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Name of the gas used in the buffer gas (default: "He").
 //*** - mi: Initial axion mass in eV (default: 0).
@@ -59,7 +59,7 @@ constexpr bool kSave = true;
 
 void FormatYAxisAsPercentage(TGraph* graph);
 
-Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", 
+Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", 
                                             Double_t mi = 0.2, Double_t mf = 0.5, Bool_t useLogScale = true) {
 
     /// Definition of variables
@@ -68,6 +68,8 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
     const TVector3 direction = (position - TVector3(5, -5, 11000)).Unit();
     const Double_t gasDensity = 2.9868e-10;
     std::vector<Double_t> mass;
+
+    Double_t accuracy = 0.3;
 
     // Define all four fields
     std::map<std::string, FieldInfo> fields;
@@ -82,8 +84,8 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         gas = std::make_unique<TRestAxionBufferGas>();
         gas->SetGasDensity(gasName, gasDensity);
     }
-
-    // Set up Axion field
+    
+    // Set up Axion field and assign magentic field
     for (auto& field : fields) {
         if (gas != nullptr) {
             field.second.axionField->AssignBufferGas(gas.get());
@@ -106,7 +108,7 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
 
         for (auto& field : fields) {
             auto start_time = std::chrono::high_resolution_clock::now();
-            std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, 0.5, 100, 20);
+            std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, 100, 20);
             auto end_time = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
@@ -128,6 +130,7 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
     }
 
     if (kPlot) {
+        std::vector<Color_t> colors = {kBlue-2, kMagenta-6, kYellow+3, kGreen+2};
         /// PLOT ///
         TCanvas* canvas1 = new TCanvas("canvas1", "", 800, 600);
         TCanvas* canvas2 = new TCanvas("canvas2", "", 800, 600);
@@ -135,13 +138,13 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         // Canvas 1 - Bykovskiy2019 vs Bykovskiy2020
         canvas1->cd();
         std::vector<TGraphErrors*> graphs1;
-        TLegend* legendB = new TLegend(0.1, 0.8, 0.3, 0.9);
-        Int_t colorIndex = 1;
+        TLegend* legendB = new TLegend(0.7, 0.8, 0.9, 0.9);
+        Int_t colorIndex = 0;
         for (auto& field : fields) {
             if (field.first == "Bykovskiy2019" || field.first == "Bykovskiy2020") {
                 TGraphErrors* graph = new TGraphErrors(nData, &mass[0], &field.second.probability[0], 0, &field.second.error[0]);
                 
-                graph->SetLineColor(colorIndex);
+                graph->SetLineColor(colors[colorIndex]);
                 graph->SetLineWidth(1);
 
                 if (useLogScale) {
@@ -157,9 +160,10 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
 
         // Set axis labels for canvas 1
         graphs1[0]->SetTitle("");
-        graphs1[0]->GetXaxis()->SetTitle("Mass (eV)");
-        graphs1[0]->GetYaxis()->SetTitle("Probability");
+        graphs1[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
+        graphs1[0]->GetYaxis()->SetTitle("Probabilidad");
         graphs1[0]->GetXaxis()->SetRange(mi, mf);
+        graphs1[0]->GetYaxis()->SetRangeUser(1e-27, 1e-19);
         graphs1[0]->GetXaxis()->SetTitleSize(0.03); 
         graphs1[0]->GetXaxis()->SetTitleFont(40);  
         graphs1[0]->GetXaxis()->SetLabelSize(0.025); 
@@ -175,12 +179,12 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         canvas2->cd();
 
         std::vector<TGraphErrors*> graphs2;
-        TLegend* legendM = new TLegend(0.1, 0.8, 0.3, 0.9);
+        TLegend* legendM = new TLegend(0.7, 0.8, 0.9, 0.9);
         for (auto& field : fields) {
             if (field.first == "Mentisk" || field.first == "MentiskCut") {
                 TGraphErrors* graph = new TGraphErrors(nData, &mass[0], &field.second.probability[0], 0, &field.second.error[0]);
 
-                graph->SetLineColor(colorIndex);
+                graph->SetLineColor(colors[colorIndex]);
                 graph->SetLineWidth(1);
 
                 if (useLogScale) {
@@ -196,9 +200,10 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
 
         // Set axis labels for canvas 2
         graphs2[0]->SetTitle("");
-        graphs2[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
-        graphs2[0]->GetYaxis()->SetTitle("Probability");
+        graphs2[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
+        graphs2[0]->GetYaxis()->SetTitle("Probabilidad");
         graphs2[0]->GetXaxis()->SetRange(mi, mf);
+        graphs2[0]->GetYaxis()->SetRangeUser(1e-32, 1e-19);
         graphs2[0]->GetXaxis()->SetTitleSize(0.03); 
         graphs2[0]->GetXaxis()->SetTitleFont(40);  
         graphs2[0]->GetXaxis()->SetLabelSize(0.025); 
@@ -228,8 +233,8 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         }
 
         mg->Draw("ACP");
-        mg->GetXaxis()->SetTitle("Axion Mass (eV)");
-        mg->GetYaxis()->SetTitle("Runtime (ms)");
+        mg->GetXaxis()->SetTitle("Masa Axion (eV)");
+        mg->GetYaxis()->SetTitle("Tiempo computacional (ms)");
         mg->GetXaxis()->SetRange(mi, mf);
         legend->Draw();
         mg->GetXaxis()->SetTitleSize(0.03); 
@@ -243,13 +248,15 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
 
         if (kSave) {
             std::string folder = "BMapsAnalysis/";
+            std::ostringstream ossAccuracy;
+            ossAccuracy << std::fixed << std::setprecision(2) << accuracy;
             if (!std::filesystem::exists(folder)) {
                 std::filesystem::create_directory(folder);
             }
             std::string fileNameB, fileNameM, fileNameR;
-            fileNameB = folder + "BykovskiyProbabilityMap";
-            fileNameM = folder + "MentiskProbabilityMap";
-            fileNameR = folder + "RunTimeFieldMaps";
+            fileNameB = folder + "BykovskiyProbabilityMap_Acc_" + ossAccuracy.str();
+            fileNameM = folder + "MentiskProbabilityMap_Acc_" + ossAccuracy.str();
+            fileNameR = folder + "RunTimeFieldMaps_Acc_" + ossAccuracy.str();
             if (useLogScale) {
                 fileNameB += "_log.png";
                 fileNameM += "_log.png";
@@ -270,15 +277,17 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
 
         std::vector<Double_t> residualsBykovskiy;
         for (unsigned j = 0; j < nData; j++) {
-            residualsBykovskiy.push_back(fields["Bykovskiy2019"].probability[j] - fields["Bykovskiy2020"].probability[j]);
+            Double_t residual = std::abs(fields["Bykovskiy2019"].probability[j] - fields["Bykovskiy2020"].probability[j]) / fields["Bykovskiy2019"].probability[j] * 100.0;
+            residualsBykovskiy.push_back(residual);
         }
 
         TGraph* residualGraphBykovskiy = new TGraph(nData, &mass[0], &residualsBykovskiy[0]);
         residualGraphBykovskiy->SetMarkerStyle(8); 
+        residualGraphBykovskiy->SetMarkerColor(kBlue+3);
         residualGraphBykovskiy->SetMarkerSize(0.4);  
         residualGraphBykovskiy->SetTitle("");
-        residualGraphBykovskiy->GetXaxis()->SetTitle("Axion Mass (eV)");
-        residualGraphBykovskiy->GetYaxis()->SetTitle("Residual");
+        residualGraphBykovskiy->GetXaxis()->SetTitle("Masa Axion (eV)");
+        residualGraphBykovskiy->GetYaxis()->SetTitle("Residuos (%)");
         residualGraphBykovskiy->GetXaxis()->SetTitleSize(0.04);
         residualGraphBykovskiy->GetXaxis()->SetLabelSize(0.03);
         residualGraphBykovskiy->GetYaxis()->SetTitleSize(0.04);
@@ -298,15 +307,17 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
 
         std::vector<Double_t> residualsMentisk;
         for (unsigned j = 0; j < nData; j++) {
-            residualsMentisk.push_back(fields["Mentisk"].probability[j] - fields["MentiskCut"].probability[j]);
+            Double_t residual = std::abs(fields["Mentisk"].probability[j] - fields["MentiskCut"].probability[j]) / fields["Mentisk"].probability[j] * 100.0;
+            residualsMentisk.push_back(residual);
         }
 
         TGraph* residualGraphMentisk = new TGraph(nData, &mass[0], &residualsMentisk[0]);
         residualGraphMentisk->SetMarkerStyle(8); 
+        residualGraphMentisk->SetMarkerColor(kGreen-3);
         residualGraphMentisk->SetMarkerSize(0.4); 
         residualGraphMentisk->SetTitle(""); 
-        residualGraphMentisk->GetXaxis()->SetTitle("Axion Mass (eV)");
-        residualGraphMentisk->GetYaxis()->SetTitle("Residual");
+        residualGraphMentisk->GetXaxis()->SetTitle("Masa Axion (eV)");
+        residualGraphMentisk->GetYaxis()->SetTitle("Residuos (%)");
         residualGraphMentisk->GetXaxis()->SetTitleSize(0.04);
         residualGraphMentisk->GetXaxis()->SetLabelSize(0.03);
         residualGraphMentisk->GetYaxis()->SetTitleSize(0.04);
@@ -320,13 +331,17 @@ Int_t REST_Axion_BMapsSysAnalysisPlot(Int_t nData = 200, Double_t Ea = 4.2, std:
         residualGraphMentisk->GetXaxis()->SetRange(mi, mf);  
         residualGraphMentisk->Draw("AP");
 
+        gPad->SetLogy();
+
 
         // Save the plots if kSave is true
         if (kSave) {
             std::string folder = "BMapsAnalysis/";
-            std::string fileNameBykovskiyResidual = folder + "BykovskiyResidual.png";
+            std::ostringstream ossAccuracy;
+            ossAccuracy << std::fixed << std::setprecision(2) << accuracy;
+            std::string fileNameBykovskiyResidual = folder + "BykovskiyResidual_Acc_" + ossAccuracy.str() + ".png";
             canvas4->SaveAs(fileNameBykovskiyResidual.c_str());  
-            std::string fileNameMentiskResidual = folder + "MentiskResidual.png";
+            std::string fileNameMentiskResidual = folder + "MentiskResidual_Acc_" + ossAccuracy.str() + ".png";
             canvas5->SaveAs(fileNameMentiskResidual.c_str());   
         }
 
