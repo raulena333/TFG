@@ -21,7 +21,7 @@
 //*** axion masses and energies,then plots it. ALso calculates the runtime for each esh and plots them.
 //*** 
 //*** Mesh Map Definitions in mm:
-//*** (20, 20, 100), (30, 30, 150), (50, 50, 250), (50, 50, 500)
+//*** (20, 20, 100), (30, 30, 150), (50, 50, 250), (100, 100, 500)
 //***
 //*** Arguments by default are (in order):
 //*** - nData: Number of data points to generate (default: 125).
@@ -51,7 +51,7 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::string gasName = "He", 
+Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", 
                                   Double_t mi = 0.2, Double_t mf = 0.5, Bool_t useLogScale = true) {
     // Mesh Map Definitions in mm
     std::vector<TVector3> meshSizes = {
@@ -63,7 +63,8 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
     };
 
     // Create Variables
-    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
+    // std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
+    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
     const TVector3 position(-5, 5, -11000);
     const TVector3 direction = (position - TVector3(5, -5, 11000)).Unit();
     const Double_t gasDensity = 2.9868e-10;
@@ -104,7 +105,8 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
         }  
 
         // Iterate for saome accuracys to test the runTime
-        std::vector<Double_t> accuracyValues = {0.5, 1.};
+        // std::vector<Double_t> accuracyValues = {0.5, 1.};
+        std::vector<Double_t> accuracyValues = {0.25};
         for(const auto &accuracy : accuracyValues){
             for (auto& field : fields) {
                 field.second.probability.clear();
@@ -130,7 +132,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
                     auto start_time = std::chrono::high_resolution_clock::now();
                     std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, 100, 20);
                     auto end_time = std::chrono::high_resolution_clock::now();
-                    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+                    auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
 
                     field.second.probability.push_back(probField.first);
                     field.second.error.push_back(probField.second);
@@ -141,7 +143,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
                         std::cout << field.first << std::endl;
                         std::cout << "Probability: " << probField.first << std::endl;
                         std::cout << "Error: " << probField.second << std::endl;
-                        std::cout << "Runtime (ms): " << duration.count() << std::endl;
+                        std::cout << "Runtime (s): " << duration.count() << std::endl;
                         std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                         std::cout << std::endl;
                     }
@@ -157,7 +159,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
                 canvasProb->cd();
 
                 Int_t colorIndex = 0;
-                TLegend *legendProb = new TLegend(0.1, 0.7, 0.3, 0.9);
+                TLegend *legendProb = new TLegend(0.7, 0.7, 0.9, 0.9);
                 std::vector<TGraphErrors*> graphsProb;
 
                 for (const auto &field : fields) {
@@ -166,7 +168,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
                     graph->SetLineWidth(1);
                     graph->GetYaxis()->SetRangeUser(1e-32, 1e-18);
                     graph->SetTitle("");
-                    if (colorIndex == 1) {
+                    if (colorIndex == 0) {
                         graph->Draw("ACP");
                     } else {
                         graph->Draw("Same");
@@ -184,7 +186,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
                 graphsProb[0]->GetYaxis()->SetTitle("Probabilidad");
                 graphsProb[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
                 graphsProb[0]->GetXaxis()->SetRange(mi, mf);
-                graphsProb[0]->GetYaxis()->SetRangeUser(1e-32, 1e-18);
+                graphsProb[0]->GetYaxis()->SetRangeUser(1e-32, 1e-19);
                 graphsProb[0]->GetXaxis()->SetTitleSize(0.03); 
                 graphsProb[0]->GetXaxis()->SetTitleFont(40);  
                 graphsProb[0]->GetXaxis()->SetLabelSize(0.025); 
@@ -204,7 +206,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
                 canvasRun->cd();
 
                 colorIndex = 0;
-                TLegend *legendRun = new TLegend(0.1, 0.7, 0.3, 0.9);
+                TLegend *legendRun = new TLegend(0.7, 0.7, 0.9, 0.9);
                 std::vector<TGraph*> graphsRun;
 
                 for (const auto &field : fields) {
@@ -212,7 +214,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
                     graph->SetLineColor(colors[colorIndex]);
                     graph->SetLineWidth(1);
                     graph->SetTitle("");
-                    if (colorIndex == 1) {
+                    if (colorIndex == 0) {
                         graph->Draw("ACP");
                     } else {
                         graph->Draw("Same");
@@ -227,7 +229,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
                 }
 
                 graphsRun[0]->SetTitle("");
-                graphsRun[0]->GetYaxis()->SetTitle("Tiempo computacional (ms)");
+                graphsRun[0]->GetYaxis()->SetTitle("Tiempo computacional (s)");
                 graphsRun[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
                 graphsRun[0]->GetXaxis()->SetRange(mi, mf);
                 graphsRun[0]->GetXaxis()->SetTitleSize(0.03); 
@@ -240,21 +242,26 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
                 graphsRun[0]->GetYaxis()->SetLabelFont(40); 
                 legendRun->Draw();
 
+                if (useLogScale)
+                    canvasRun->SetLogy();
+
                 if (kSave) {
                     std::string folder = "GridAnalysis/";
                     if (!std::filesystem::exists(folder)) {
                         std::filesystem::create_directory(folder);
                     }
+                    std::ostringstream ossAccuracy;
+                    ossAccuracy << std::fixed << std::setprecision(2) << accuracy;
 
-                    std::string fileNameProb = fieldName + "_GridAnalysis_Probability";
-                    std::string fileNameRun = fieldName + "_GridAnalysis_RunTime";
+                    std::string fileNameProb = fieldName + "_GridAnalysis_Probability_Acc" + ossAccuracy.str();
+                    std::string fileNameRun = fieldName + "_GridAnalysis_RunTime_Acc" + ossAccuracy.str();
 
                     if (useLogScale) {
-                        fileNameProb += "_log.png";
-                        fileNameRun += "_log.png";
+                        fileNameProb += "_log.pdf";
+                        fileNameRun += "_log.pdf";
                     } else {
-                        fileNameProb += ".png";
-                        fileNameRun += ".png";
+                        fileNameProb += ".pdf";
+                        fileNameRun += ".pdf";
                     }
 
                     canvasProb->SaveAs((folder + fileNameProb).c_str());
@@ -340,10 +347,9 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::str
                     }
                     std::ostringstream ossAccuracy;
                     ossAccuracy << std::fixed << std::setprecision(2) << accuracy;
-                    std::string fileNameResiduals = folder + "Residuals_" + fieldName + "_Accuracy_" + ossAccuracy.str() + ".png";
+                    std::string fileNameResiduals = folder + "Residuals_" + fieldName + "_Accuracy_" + ossAccuracy.str() + ".pdf";
                     canvasResiduals->SaveAs(fileNameResiduals.c_str());
                 }
-
 
                 // Clean up
                 delete legendProb;

@@ -64,7 +64,8 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 10, Double_t Ea = 4.2, std::string g
     };
 
     // Create Variables
-    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
+    //std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
+    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
     const TVector3 position(-5, 5, -11000);
     const TVector3 direction = (position - TVector3(5, -5, 11000)).Unit();
     const Double_t gasDensity = 2.9868e-10;
@@ -84,7 +85,9 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 10, Double_t Ea = 4.2, std::string g
         else
             masses.push_back(gas != nullptr ? gas->GetPhotonMass(Ea) : 0);
     }
-    std::vector<Double_t> accuracyValues = {0.05, 0.1, 0.5};
+
+    //std::vector<Double_t> accuracyValues = {0.1, 0.5};
+    std::vector<Double_t> accuracyValues = {0.05, 0.1};
     for(const auto &fieldName : fieldNames) {
         // Fill the struct 
         std::map<std::string, FieldTrack> fields;
@@ -195,7 +198,7 @@ Int_t REST_Axion_GridAnalysis(Int_t nData = 10, Double_t Ea = 4.2, std::string g
                     return 1;
                 }
 
-                outputFile << (ma != (gas != nullptr ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << "Accuracy: " << accuracy << std::endl;
+                outputFile << (ma != (gas != nullptr ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << " Accuracy: " << accuracy << std::endl;
                 outputFile << "Grid\tSize\tProbability\tError\tTime(ms)\n";
                 for (const auto& field : fields) {
                     outputFile << field.first << "\t (" << field.second.mapSize.X() << "," << field.second.mapSize.Y() << "," << field.second.mapSize.Z()<< ")\t "
