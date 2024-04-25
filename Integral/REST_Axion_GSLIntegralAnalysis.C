@@ -21,7 +21,7 @@
 //*** for different axion masses and integration accuracies. The results are plotted on graphs for visualization.
 //*** 
 //*** Arguments by default are (in order):
-//*** - nData: Number of accuracy points to generate (default: 200).
+//*** - nData: Number of accuracy points to generate (default: 100).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Name of the buffer gas (default: "He").
 //*** - m1: Initial axion mass in eV far from resonance (default: 0.01).
@@ -41,11 +41,14 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 200, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.01, 
-                                     Double_t m3 = 0.1, Double_t m2 = 0.3, Double_t accuracyInitial = 0.01, Double_t accuracyFinal = 1.0) {
+void SetYRange(TGraph* graph, Double_t percentage = 0.1);
+
+Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.01, 
+                                    Double_t m3 = 0.1, Double_t m2 = 0.3, Double_t accuracyInitial = 0.1, Double_t accuracyFinal = 1.) {
 
     // Create Variables
-    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
+    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", //"babyIAXO_2024"
+    };
     const Double_t gasDensity = 2.9836e-10;
     const TVector3 initialPosition(-5, 5, -11000);
     const TVector3 direction = (initialPosition - TVector3(5, -5, 11000)).Unit();
@@ -119,19 +122,23 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 200, Double_t Ea = 4.2, std::
                 }
             }
 
-            if (kPlot) {
-                TCanvas *canvas = new TCanvas((fieldName + "_Analysis").c_str(), (fieldName + "_Analysis").c_str(), 800, 600);
-                canvas->Divide(1, 3);
+           if (kPlot) {
+                TCanvas *canvas = new TCanvas((fieldName + "_Analysis" + std::to_string(ma)).c_str(), (fieldName + "_Analysis" + std::to_string(ma)).c_str(), 1200, 400);
+                canvas->Divide(3, 1);
 
                 // First pad for the probability integration plot
                 canvas->cd(1);
                 TGraph *graphProb = new TGraph(nData, &accuracyValues[0], &probValues[0]);
                 graphProb->SetTitle("");
-                graphProb->SetMarkerStyle(8); 
-                graphProb->SetMarkerSize(0.4);  
-                graphProb->GetXaxis()->SetTitle("Accuracy");
-                graphProb->GetYaxis()->SetTitle("Probability");
-                graphProb->GetXaxis()->SetRange(accuracyInitial, accuracyFinal);
+                //graphProb->SetMarkerStyle(8); 
+                //graphProb->SetMarkerColor(kBlack); 
+                //graphProb->SetMarkerSize(0.4);  
+                graphProb->SetLineColor(kBlack); 
+                graphProb->SetLineWidth(2);
+                graphProb->GetXaxis()->SetTitle("Precision");
+                graphProb->GetYaxis()->SetTitle("Probabilidad");
+                graphProb->GetXaxis()->SetRangeUser(accuracyInitial, accuracyFinal);
+                SetYRange(graphProb, 0.05);
                 graphProb->GetXaxis()->SetTitleSize(0.03); 
                 graphProb->GetXaxis()->SetTitleFont(40);  
                 graphProb->GetXaxis()->SetLabelSize(0.025); 
@@ -139,18 +146,22 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 200, Double_t Ea = 4.2, std::
                 graphProb->GetYaxis()->SetTitleSize(0.03); 
                 graphProb->GetYaxis()->SetTitleFont(40);  
                 graphProb->GetYaxis()->SetLabelSize(0.025); 
-                graphProb->GetYaxis()->SetLabelFont(40); 
-                graphProb->Draw("AP");
+                graphProb->GetYaxis()->SetLabelFont(40);
+                graphProb->Draw("ACP");
 
                 // Second pad for the error integration plot
                 canvas->cd(2);
                 TGraph *graphError = new TGraph(nData, &accuracyValues[0], &errorValues[0]);
                 graphError->SetTitle("");
-                graphError->SetMarkerStyle(8); 
-                graphError->SetMarkerSize(0.4);  
-                graphError->GetXaxis()->SetTitle("Accuracy");
+                //graphError->SetMarkerStyle(8);
+                //graphError->SetMarkerColor(kBlack);  
+                //graphError->SetMarkerSize(0.4);  
+                graphError->SetLineColor(kBlack); 
+                graphError->SetLineWidth(2);
+                graphError->GetXaxis()->SetTitle("Precision");
                 graphError->GetYaxis()->SetTitle("Error");
-                graphError->GetXaxis()->SetRange(accuracyInitial, accuracyFinal);
+                graphError->GetXaxis()->SetRangeUser(accuracyInitial, accuracyFinal);
+                SetYRange(graphError, 0.05);
                 graphError->GetXaxis()->SetTitleSize(0.03); 
                 graphError->GetXaxis()->SetTitleFont(40);  
                 graphError->GetXaxis()->SetLabelSize(0.025); 
@@ -159,17 +170,21 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 200, Double_t Ea = 4.2, std::
                 graphError->GetYaxis()->SetTitleFont(40);  
                 graphError->GetYaxis()->SetLabelSize(0.025); 
                 graphError->GetYaxis()->SetLabelFont(40); 
-                graphError->Draw("AP");
+                graphError->Draw("ACP");
 
                 // Third pad for the runtime plot
                 canvas->cd(3);
                 TGraph *graphRuntime = new TGraph(nData, &accuracyValues[0], &runValues[0]);
                 graphRuntime->SetTitle("");
-                graphRuntime->SetMarkerStyle(8); 
-                graphRuntime->SetMarkerSize(0.4);  
-                graphRuntime->GetXaxis()->SetTitle("Accuracy");
-                graphRuntime->GetYaxis()->SetTitle("Runtime (ms)");
-                graphRuntime->GetXaxis()->SetRange(accuracyInitial, accuracyFinal);
+                //graphRuntime->SetMarkerStyle(8); 
+                //graphRuntime->SetMarkerColor(kBlack); 
+                //graphRuntime->SetMarkerSize(0.4);  
+                graphRuntime->SetLineColor(kBlack); 
+                graphRuntime->SetLineWidth(2);
+                graphRuntime->GetXaxis()->SetTitle("Precision");
+                graphRuntime->GetYaxis()->SetTitle("Tiempo computacional (ms)");
+                graphRuntime->GetXaxis()->SetRangeUser(accuracyInitial, accuracyFinal);
+                SetYRange(graphRuntime, 0.05);
                 graphRuntime->GetXaxis()->SetTitleSize(0.03); 
                 graphRuntime->GetXaxis()->SetTitleFont(40);  
                 graphRuntime->GetXaxis()->SetLabelSize(0.025); 
@@ -178,24 +193,70 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 200, Double_t Ea = 4.2, std::
                 graphRuntime->GetYaxis()->SetTitleFont(40);  
                 graphRuntime->GetYaxis()->SetLabelSize(0.025); 
                 graphRuntime->GetYaxis()->SetLabelFont(40); 
-                graphRuntime->Draw("AP");
+                graphRuntime->Draw("ACP");
 
                 canvas->Update();
 
                 // Save the canvas if required
                 if (kSave) {
-                    std::string folder = "GSL_Integral_Analysis/";
+                    std::string folder = "GSL_Integral_Analysis1/";
                     std::ostringstream ossMass;
                     ossMass << std::fixed << std::setprecision(2) << ma;
                     if (!std::filesystem::exists(folder)) {
                         std::filesystem::create_directory(folder);
                     }
-                    canvas->SaveAs((folder + fieldName + "_ProbabilityPlot_GSL_Mass_" + ossMass.str() + ".png").c_str());
+                    canvas->SaveAs((folder + fieldName + "_Analysis_GSL_Mass_" + ossMass.str() + ".pdf").c_str());
                 }
+
+                delete graphProb;
+                delete graphError;
+                delete graphRuntime;
+                delete canvas;
             }
 
-            delete canvas;
+            std::string filename;
+            std::string folder = "GSL_Integral_Analysis1/";
+            std::ostringstream ossMass;
+            ossMass << std::fixed << std::setprecision(2) << ma;
+            filename = folder + "REST_AXION_" + fieldName + "_GSLIntegralAnalysis_Mass_" + ossMass.str() + ".txt";   
+
+            std::ofstream outputFile(filename);
+            if (!outputFile.is_open()) {
+                std::cerr << "Error: Unable to open the file for writing!" << std::endl;
+                return 1;
+            }
+
+            outputFile << "Precisión" << "\t" << "Probabilidad" << "\t" << "Error" << "\t" << "Tiempo (ms)" << std::endl;
+            for(size_t i = 0; i<nData; i++){
+                outputFile << accuracyValues[i] << "\t" << probValues[i] << "\t" << errorValues[i] << "\t" << runValues[i] << std::endl;
+            }
+            outputFile.close();
+
         }     
     }
     return 0;
+}
+
+void SetYRange(TGraph* graph, Double_t percentage = 0.1) {
+    if (graph) {
+        TAxis* yAxis = graph->GetYaxis();
+        if (yAxis) {
+            Double_t minY = DBL_MAX;
+            Double_t maxY = -DBL_MAX;
+            Double_t *yValues = graph->GetY();
+            if (yValues) {
+                for (Int_t i = 0; i < graph->GetN(); ++i) {
+                    if (yValues[i] < minY) minY = yValues[i];
+                    if (yValues[i] > maxY) maxY = yValues[i];
+                }
+
+                // Calculate the range increase based on the percentage
+                Double_t rangeIncrease = (maxY - minY) * percentage;
+                minY -= rangeIncrease;
+                maxY += rangeIncrease;
+
+                yAxis->SetRangeUser(minY, maxY);
+            }
+        }
+    }
 }
