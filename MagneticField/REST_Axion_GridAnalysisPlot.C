@@ -106,7 +106,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
 
         // Iterate for saome accuracys to test the runTime
         // std::vector<Double_t> accuracyValues = {0.5, 1.};
-        std::vector<Double_t> accuracyValues = {0.25};
+        std::vector<Double_t> accuracyValues = {0.25, 0.5};
         for(const auto &accuracy : accuracyValues){
             for (auto& field : fields) {
                 field.second.probability.clear();
@@ -132,7 +132,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                     auto start_time = std::chrono::high_resolution_clock::now();
                     std::pair<Double_t, Double_t> probField = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, 100, 20);
                     auto end_time = std::chrono::high_resolution_clock::now();
-                    auto duration = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time);
+                    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
 
                     field.second.probability.push_back(probField.first);
                     field.second.error.push_back(probField.second);
@@ -143,7 +143,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                         std::cout << field.first << std::endl;
                         std::cout << "Probability: " << probField.first << std::endl;
                         std::cout << "Error: " << probField.second << std::endl;
-                        std::cout << "Runtime (s): " << duration.count() << std::endl;
+                        std::cout << "Runtime (ms): " << duration.count() << std::endl;
                         std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                         std::cout << std::endl;
                     }
@@ -187,13 +187,13 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                 graphsProb[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
                 graphsProb[0]->GetXaxis()->SetRange(mi, mf);
                 graphsProb[0]->GetYaxis()->SetRangeUser(1e-32, 1e-19);
-                graphsProb[0]->GetXaxis()->SetTitleSize(0.03); 
+                graphsProb[0]->GetXaxis()->SetTitleSize(0.04); 
                 graphsProb[0]->GetXaxis()->SetTitleFont(40);  
-                graphsProb[0]->GetXaxis()->SetLabelSize(0.025); 
+                graphsProb[0]->GetXaxis()->SetLabelSize(0.03); 
                 graphsProb[0]->GetXaxis()->SetLabelFont(40);  
                 graphsProb[0]->GetYaxis()->SetTitleSize(0.03); 
                 graphsProb[0]->GetYaxis()->SetTitleFont(40);  
-                graphsProb[0]->GetYaxis()->SetLabelSize(0.025); 
+                graphsProb[0]->GetYaxis()->SetLabelSize(0.04); 
                 graphsProb[0]->GetYaxis()->SetLabelFont(40); 
                 legendProb->Draw();
 
@@ -229,16 +229,16 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                 }
 
                 graphsRun[0]->SetTitle("");
-                graphsRun[0]->GetYaxis()->SetTitle("Tiempo computacional (s)");
+                graphsRun[0]->GetYaxis()->SetTitle("Tiempo computacional (ms)");
                 graphsRun[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
                 graphsRun[0]->GetXaxis()->SetRange(mi, mf);
-                graphsRun[0]->GetXaxis()->SetTitleSize(0.03); 
+                graphsRun[0]->GetXaxis()->SetTitleSize(0.04); 
                 graphsRun[0]->GetXaxis()->SetTitleFont(40);  
-                graphsRun[0]->GetXaxis()->SetLabelSize(0.025); 
+                graphsRun[0]->GetXaxis()->SetLabelSize(0.03); 
                 graphsRun[0]->GetXaxis()->SetLabelFont(40);  
-                graphsRun[0]->GetYaxis()->SetTitleSize(0.03); 
+                graphsRun[0]->GetYaxis()->SetTitleSize(0.04); 
                 graphsRun[0]->GetYaxis()->SetTitleFont(40);  
-                graphsRun[0]->GetYaxis()->SetLabelSize(0.025); 
+                graphsRun[0]->GetYaxis()->SetLabelSize(0.03); 
                 graphsRun[0]->GetYaxis()->SetLabelFont(40); 
                 legendRun->Draw();
 

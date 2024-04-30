@@ -30,7 +30,7 @@
 //*** - gasName: Gas name (default: "He").
 //*** - mi: Initial axion mass in eV (default: 0.2).
 //*** - mf: Final axion mass in eV (default: 0.5).
-//*** - Accuracy: Accuracy value for intrgration in GSL, depends on the axion mass (default 1.).
+//*** - dL: Accuracy value for intrgration in Standard, depends on the axion mass (default 1.).
 //*** - useLogSCale: set log scale in y-axis for plots (default: false)
 //***
 //*** Dependencies:
@@ -43,10 +43,11 @@
 
 struct FieldTrack {
     bool interpolation;
+    std::unique_ptr<TRestAxionMagneticField> magneticField;
+    std::unique_ptr<TRestAxionField> axionField;
 
     std::vector<double> probability;
-    //std::vector<double> error;
-    std::vector<double> timeComputation;
+    double Time;
 };
 
 constexpr bool kDebug = true;
@@ -54,19 +55,15 @@ constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
 Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", 
-                    Double_t mi = 0.2, Double_t mf = 0.5, Double_t accuracy = 1., Bool_t useLogScale =  true){
+                    Double_t mi = 0.2, Double_t mf = 0.5, Int_t dL = 1, Bool_t useLogScale =  true){
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
     Double_t gasDensity = 2.9836e-10;
-    TVector3 position(-10, 10, -11000);
-    TVector3 fposition(10, -10 , 11000);
+    TVector3 position(-5, 5, -11000);
+    TVector3 fposition(5, -5 , 11000);
     TVector3 direction = (position - fposition).Unit();
     std::vector<Double_t> masses;
 
-    std::map<std::string, FieldTrack> fields = {
-        {"Interpolation", {true}},
-        {"No-Interpolation", {false}}
-    };
 
     // Create an instance of TRestAxionBufferGas if gasName is provided
     std::unique_ptr<TRestAxionBufferGas> gas = nullptr;
@@ -80,52 +77,44 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
         masses.push_back(mi + j *(mf - mi)/ nData);
     }
 
+    std::string folder = "InterpolationAnalysis/";
     for(const auto &fieldName : fieldNames){
-        // Create an instance of TRestAxionField and assign magnetic field and gas (if provided).
-        auto magneticField = std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName);
-        auto axionField = std::make_unique<TRestAxionField>();
+        std::map<std::string, FieldTrack> fields;
+        fields["Interpolation"] = {true, std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName), std::make_unique<TRestAxionField>()};
+        fields["No-Interpolation"] = {false, std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName), std::make_unique<TRestAxionField>()};
 
-        if (gas != nullptr) 
-            axionField->AssignBufferGas(gas.get());
+        for(auto &field: fields){
+            if (gas != nullptr) 
+                field.second.axionField->AssignBufferGas(gas.get());
 
-        //magneticField->SetTrack(position, direction);
-        std::vector<Double_t> magneticValues =  magneticField->GetTransversalComponentAlongPath(position, fposition, 10); 
-        axionField->AssignMagneticField(magneticField.get()); 
+            field.second.axionField->AssignMagneticField(field.second.magneticField.get());
+        }
 
-        for(const auto &ma : masses){
-            if(kDebug){
-                std::cout << "+--------------------------------------------------------------------------+" << std::endl;
-                std::cout << "Mass: " << ma << std::endl;
-                std::cout << "+--------------------------------------------------------------------------+" << std::endl;
-                std::cout << std::endl;
-            }
+        for(auto &field : fields){
+            // Set interpolation on or off
+            field.second.magneticField->SetInterpolation(field.second.interpolation);
 
-            for(auto &field : fields){
-                magneticField->SetInterpolation(field.second.interpolation);
-                auto start_time = std::chrono::high_resolution_clock::now();
+            auto start_time = std::chrono::high_resolution_clock::now();
+            std::vector<Double_t> magneticValues = field.second.magneticField->GetTransversalComponentAlongPath(position, fposition, dL);
+
+            for(const auto &ma : masses){
+
                 // GSL
                 //std::pair<Double_t, Double_t> probField = axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, 100, 20);
                 // Standard
-                Double_t probField = axionField->GammaTransmissionProbability(magneticValues, 10, Ea, ma);
-                auto end_time = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
-
+                Double_t probField = field.second.axionField->GammaTransmissionProbability(magneticValues, dL, Ea, ma);
                 field.second.probability.push_back(probField);
-                //field.second.probability.push_back(probField.first);
-                //field.second.error.push_back(probField.second);
-                field.second.timeComputation.push_back(duration.count());
 
                 if(kDebug){
                     std::cout << "Mass: " << ma << std::endl;
                     std::cout << field.first << std::endl;
                     std::cout << "Probability: " << probField << std::endl;
-                    //std::cout << "Probability: " << probField.first << std::endl;
-                    //std::cout << "Error: " << probField.second << std::endl;
-                    std::cout << "Runtime: " << duration.count() << std::endl;
                     std::cout << std::endl;
                 }
-
-            }
+            }    
+            auto end_time = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+            field.second.Time = duration.count();
         }
 
         /// PLOT ///
@@ -135,7 +124,7 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
             canvasProb->cd();
 
             Int_t colorIndex = 1;
-            TLegend *legendProb = new TLegend(0.1, 0.8, 0.3, 0.9);
+            TLegend *legendProb = new TLegend(0.7, 0.8, 0.9, 0.9);
             //std::vector<TGraphErrors*> graphsProb;
             std::vector<TGraph*> graphsProb;
 
@@ -155,64 +144,94 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
                 graphsProb.push_back(graph);
             }
 
-            graphsProb[0]->SetTitle("Axion Mass vs Probability");
-            graphsProb[0]->GetYaxis()->SetTitle("Probability");
-            graphsProb[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
-            graphsProb[0]->GetXaxis()->SetTitleSize(0.03);
-            graphsProb[0]->GetYaxis()->SetTitleSize(0.03);
-            graphsProb[0]->GetXaxis()->SetLabelSize(0.03);
-            graphsProb[0]->GetYaxis()->SetLabelSize(0.03);
+            graphsProb[0]->SetTitle("");
+            graphsProb[0]->GetYaxis()->SetTitle("Probabilidad");
+            graphsProb[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
+            graphsProb[0]->GetXaxis()->SetRange(mi, mf);
+            graphsProb[0]->GetXaxis()->SetTitleSize(0.03); 
+            graphsProb[0]->GetXaxis()->SetTitleFont(40);  
+            graphsProb[0]->GetXaxis()->SetLabelSize(0.025); 
+            graphsProb[0]->GetXaxis()->SetLabelFont(40);  
+            graphsProb[0]->GetYaxis()->SetTitleSize(0.03); 
+            graphsProb[0]->GetYaxis()->SetTitleFont(40);  
+            graphsProb[0]->GetYaxis()->SetLabelSize(0.025); 
+            graphsProb[0]->GetYaxis()->SetLabelFont(40);
+
             legendProb->Draw();
 
             // Set logarithmic scale if required
             if (useLogScale)
                 canvasProb->SetLogy();
 
-            // Create the canvas to plot the runTime of each 
-            TCanvas *canvasRun = new TCanvas((fieldName + "_MassRunTime").c_str(), (fieldName + "_MassRun").c_str(), 850, 673);
-            canvasRun->cd();
-
-            colorIndex = 1;
-            TLegend *legendRun = new TLegend(0.1, 0.8, 0.3, 0.9);
-            std::vector<TGraph*> graphsRun;
-
-            for (const auto &field : fields) {
-                TGraph *graph = new TGraph(masses.size(), masses.data(), field.second.timeComputation.data());
-                graph->SetLineColor(colorIndex);
-                graph->SetLineWidth(1);
-                if (colorIndex == 1) {
-                    graph->Draw("ACP");
-                } else {
-                    graph->Draw("Same");
-                }
-                legendRun->AddEntry(graph, field.first.c_str(), "l");
-                colorIndex++;
-
-                graphsRun.push_back(graph);
-            }
-
-            graphsRun[0]->SetTitle("Axion Mass vs RunTime");
-            //graphsRun[0]->GetYaxis()->SetTitle("RunTime (ms)");
-            graphsRun[0]->GetYaxis()->SetTitle("RunTime ( #mu s)");
-            graphsRun[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
-            graphsRun[0]->GetXaxis()->SetTitleSize(0.03);
-            graphsRun[0]->GetYaxis()->SetTitleSize(0.03);
-            graphsRun[0]->GetXaxis()->SetLabelSize(0.03);
-            graphsRun[0]->GetYaxis()->SetLabelSize(0.03);
-            legendRun->Draw();
-
             if constexpr (kSave) {
-                std::string folder = "InterpolationAnalysis/";
                 if (!std::filesystem::exists(folder)) {
                     std::filesystem::create_directory(folder);
                 }
 
-                std::string fileNameProb = fieldName + "_ProbabilityInterpolation.png";
-                std::string fileNameRun = fieldName + "_RunTimeInterpolation.png";
+                std::string fileNameProb = fieldName + "_SProbabilityInterpolation.pdf";
                 canvasProb->SaveAs((folder + fileNameProb).c_str());
-                canvasRun->SaveAs((folder + fileNameRun).c_str());
             }
+
+            delete canvasProb;
+            delete legendProb;
+
+            // Calculate residuals between  setting it off and on
+            std::vector<Double_t> Residuals;
+            for (size_t i = 0; i < nData; ++i) {
+                Double_t residual = std::abs(fields["Interpolation"].probability[i] - fields["No-Interpolation"].probability[i]) / fields["Interpolation"].probability[i] * 100.0 ;
+                Residuals.push_back(residual);
+            }
+
+            // Create canvas to plot residuals for Grid2 and Grid5
+            TCanvas *canvasResiduals = new TCanvas((fieldName + "_Residuals_" + std::to_string(dL)).c_str(), "Residuals", 500, 300);
+            canvasResiduals->cd();
+
+            TGraph *graphInter = nullptr;
+            graphInter = new TGraph(nData, masses.data(), Residuals.data());
+            graphInter->SetMarkerStyle(8);
+            graphInter->SetMarkerSize(0.4);
+            graphInter->SetMarkerColor(kBlack);
+            graphInter->SetTitle("");
+            graphInter->GetXaxis()->SetTitle("Masa Axion (eV)");
+            graphInter->GetYaxis()->SetTitle("Residuos (%)");
+            graphInter->GetXaxis()->SetTitleSize(0.04);
+            graphInter->GetXaxis()->SetLabelSize(0.03);
+            graphInter->GetYaxis()->SetTitleSize(0.04);
+            graphInter->GetYaxis()->SetLabelSize(0.03);
+            graphInter->GetYaxis()->SetTitleFont(62);
+            graphInter->GetYaxis()->SetTitleOffset(1.0);
+            graphInter->GetXaxis()->SetTitleFont(62);
+            graphInter->GetYaxis()->SetLabelFont(62);
+            graphInter->GetXaxis()->SetLabelFont(62);
+            graphInter->Draw("AP");
+ 
+            if(useLogScale)
+                canvasResiduals->SetLogy();
+
+            if constexpr (kSave) {
+                if (!std::filesystem::exists(folder)) {
+                    std::filesystem::create_directory(folder);
+                }
+
+                std::string fileNameProb = fieldName + "_SProbabilityInterpolationResidual.pdf";
+                canvasProb->SaveAs((folder + fileNameProb).c_str());
+            }
+
+            delete canvasResiduals;
         }
+
+        // Save times for both 
+        std::string fileName = fieldName + "_SProbabilityInterpolationRun.txt";
+        std::ofstream outputFile((folder + fileName).c_str());
+        if (!outputFile.is_open()) {
+            std::cerr << "Error: Unable to open the file for writing!" << std::endl;
+            return 1;
+        }  
+
+        outputFile << "Time in seconds" << std::endl;
+        for(const auto &field: fields)
+            outputFile << field.first << ": " << field.second.Time << std::endl;
+        outputFile.close();
     }
     return 0;
 }

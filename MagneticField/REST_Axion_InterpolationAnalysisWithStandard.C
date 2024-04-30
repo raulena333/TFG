@@ -37,6 +37,9 @@
 
 struct FieldTrack {
     bool interpolation;
+    std::unique_ptr<TRestAxionMagneticField> magneticField;
+    std::unique_ptr<TRestAxionField> axionField;
+    std::vector<double> mValues;
 
     std::vector<double> probabilityG;
     std::vector<double> errorG;
@@ -55,20 +58,15 @@ struct FieldTrack {
 
 constexpr bool kDebug = true;
 
-Int_t REST_Axion_InterpolationAnalysisWithStandard(Int_t nData = 20, Double_t Ea = 4.2, std::string gasName = "He", 
-                    Double_t m1 = 0.01, Double_t m2 = 0.3 , Double_t accuracy = 0.5, Double_t dL = 10){
+Int_t REST_Axion_InterpolationAnalysisWithStandard(Int_t nData = 5, Double_t Ea = 4.2, std::string gasName = "He", 
+                    Double_t m1 = 0.01, Double_t m2 = 0.3 , Double_t accuracy = 0.7, Double_t dL = 1){
 
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
     Double_t gasDensity = 2.9836e-10;
-    TVector3 initialPosition(-10, 10 , -11000);
-    TVector3 finalPosition(10, -10, 11000);
-    TVector3 direction = (finalPosition - initialPosition);
-
-    std::map<std::string, FieldTrack> fields = {
-        {"Interpolation", {true}},
-        {"No-Interpolation", {false}}
-    };
+    TVector3 initialPosition(-5, 5 , -11000);
+    TVector3 finalPosition(5, -5, 11000);
+    TVector3 direction = (finalPosition - initialPosition).Unit();
 
     // Create an instance of TRestAxionBufferGas if gasName is provided
     std::unique_ptr<TRestAxionBufferGas> gas = nullptr;
@@ -87,20 +85,25 @@ Int_t REST_Axion_InterpolationAnalysisWithStandard(Int_t nData = 20, Double_t Ea
         }
     }
 
+    std::string folder = "InterpolationAnalysis/";
     for(const auto &fieldName : fieldNames){
-        // Create an instance of TRestAxionField and assign magnetic field and gas (if provided).
-        auto magneticField = std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName);
-        auto axionField = std::make_unique<TRestAxionField>();
+        std::map<std::string, FieldTrack> fields;
+        fields["Interpolation"] = {true, std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName), std::make_unique<TRestAxionField>()};
+        fields["No-Interpolation"] = {false, std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName), std::make_unique<TRestAxionField>()};
 
-        // Include standard integration
-        std::vector<Double_t> magenticValues = magneticField->GetTransversalComponentAlongPath(initialPosition, finalPosition, dL);
+        for(auto &field: fields){
+            if (gas != nullptr) 
+                field.second.axionField->AssignBufferGas(gas.get());
 
-        if (gas != nullptr) 
-            axionField->AssignBufferGas(gas.get());
+            field.second.axionField->AssignMagneticField(field.second.magneticField.get());
+            field.second.magneticField->SetInterpolation(field.second.interpolation);
 
-        magneticField->SetTrack(initialPosition, direction);
-        axionField->AssignMagneticField(magneticField.get()); 
+            field.second.magneticField->SetTrack(initialPosition, direction);
+            std::vector<Double_t> magneticValues = field.second.magneticField->GetTransversalComponentAlongPath(initialPosition, finalPosition, dL);
+            field.second.mValues = magneticValues;
+        }
 
+   
         for(const auto &ma : masses){
             if(kDebug){
                 std::cout << "+--------------------------------------------------------------------------+" << std::endl;
@@ -109,20 +112,19 @@ Int_t REST_Axion_InterpolationAnalysisWithStandard(Int_t nData = 20, Double_t Ea
                 std::cout << std::endl;
             }
 
-            // Iterate over each bool, setting it on and off    
-            for(Int_t i = 0; i<nData; i++){
-                if(kDebug){
-                    std::cout << "+--------------------------------------------------------------------------+" << std::endl;
-                    std::cout << "Data: " << i << std::endl;
-                    std::cout << "+--------------------------------------------------------------------------+" << std::endl;
-                    std::cout << std::endl;
-                }
-
+            // Set interpolation on or off
                 for(auto &field : fields){
+                for(Int_t i = 0; i<nData; i++){
+                    if(kDebug){
+                        std::cout << "+--------------------------------------------------------------------------+" << std::endl;
+                        std::cout << "Data: " << i << std::endl;
+                        std::cout << "+--------------------------------------------------------------------------+" << std::endl;
+                        std::cout << std::endl;
+                    }
+
                     // GSL integration
-                    magneticField->SetInterpolation(field.second.interpolation);
                     auto start_time_gsl = std::chrono::high_resolution_clock::now();
-                    std::pair<Double_t, Double_t> probFieldG = axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, 400, 50);
+                    std::pair<Double_t, Double_t> probFieldG = field.second.axionField->GammaTransmissionFieldMapProbability(Ea, ma, accuracy, 100, 20);
                     auto end_time_gsl = std::chrono::high_resolution_clock::now();
                     auto duration_gsl = std::chrono::duration_cast<std::chrono::milliseconds>(end_time_gsl - start_time_gsl);
                     
@@ -140,10 +142,9 @@ Int_t REST_Axion_InterpolationAnalysisWithStandard(Int_t nData = 20, Double_t Ea
                         std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                     }
 
-
                     // Standard integration
                     auto start_time_s = std::chrono::high_resolution_clock::now();
-                    Double_t probFieldS = axionField->GammaTransmissionProbability(magenticValues, dL, Ea, ma);
+                    Double_t probFieldS = field.second.axionField->GammaTransmissionProbability(field.second.mValues, dL, Ea, ma);
                     auto end_time_s = std::chrono::high_resolution_clock::now();
                     auto duration_s = std::chrono::duration_cast<std::chrono::milliseconds>(end_time_s - start_time_s);
 
@@ -211,7 +212,7 @@ Int_t REST_Axion_InterpolationAnalysisWithStandard(Int_t nData = 20, Double_t Ea
             }
 
             outputFileG << "GSL Integration " << std::endl;
-            outputFileG << (ma != (gas ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << "  Accuracy: " << accuracy << std::endl;
+            outputFileG << (ma != (gas ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << "  Accuracy: " << accuracy <<  std::endl;
             outputFileG << "Interpolation\tProbability\tError\tTime(ms)\n";
             for (const auto& field : fields) {
                 outputFileG << field.first << "\t" << field.second.meanProbabilityG << "\t" << field.second.meanErrorG << "\t" << field.second.meanTimeG << "\n";
@@ -237,7 +238,7 @@ Int_t REST_Axion_InterpolationAnalysisWithStandard(Int_t nData = 20, Double_t Ea
             }
 
             outputFileS << "Standard Integration " << std::endl;
-            outputFileS << (ma != (gas ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << std::endl;
+            outputFileS << (ma != (gas ? gas->GetPhotonMass(Ea) : 0) ? "Off resonance, ma: " : "On resonance, ma: ") << ma << " dL: " << dL << std::endl;
             outputFileS << "Interpolation\tProbability\tTime(μs)\n";
             for (const auto &field : fields) {
                 outputFileS << field.first << "\t" << field.second.meanProbabilityS << "\t" << "\t" << field.second.meanTimeS << "\n";
