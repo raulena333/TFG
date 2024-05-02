@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+
+<TRestManager name="SpecPlot" title="Example" verboseLevel="info" >
+
+	<TRestAnalysisPlot name="restplot" title="Basic Plots" previewPlot="false" verboseLevel="info">
+ 
+ <canvas size="(1800,1600)" divide="(2,2)" save="[fRunNumber]_babyIAXO2019.pdf"/> <!--.C/.root-->
+   
+    <plot name="1" title="final_energy" xlabel="E(keV)" ylabel="eventsAxion" 
+			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="OFF">
+			
+       <histo name="final_energy">
+				<variable name="final_energy" range="(0,10)" nbins="70" />
+				<parameter name="fillColor" value="4" />
+       </histo>
+    </plot>
+
+    <plot name="2" title="optics_efficiency" xlabel="efficiency" ylabel="events" 
+			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="OFF">
+			
+       <histo name="optics_efficiency">
+				<variable name="optics_efficiency" range="(0,1)" nbins="70" />
+				<parameter name="fillColor" value="2" />
+       </histo>
+    </plot>
+    
+    <plot name="3" title="axionPhoton_probability" xlabel="probability" ylabel="events" 
+			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="OFF">
+			
+       <histo name="axionPhoton_probability">
+				<variable name="axionPhoton_probability" nbins="70" />
+				<parameter name="fillColor" value="3" />
+       </histo>
+    </plot>
+    
+    <plot name="4" title="axionPhoton_error" xlabel="error" ylabel="events" 
+			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="OFF">
+			
+       <histo name="axionPhoton_error">
+				<variable name="axionPhoton_error" nbins="70" />
+				<parameter name="fillColor" value="1" />
+       </histo>
+    </plot>
+    
+  </TRestAnalysisPlot>
+	<addTask command="restplot->PlotCombinedCanvas()" value="ON"/>
+
+</TRestManager>
+
+<!--paramater here is accessible to all the classes-->
