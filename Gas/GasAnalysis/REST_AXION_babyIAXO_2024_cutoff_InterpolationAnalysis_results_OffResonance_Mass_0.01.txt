@@ -1,0 +1,4 @@
+Off resonance, ma: 0.01
+Gas	Probability	Error	Time(ms)
+He-Gas	1.09922e-24	1.36723e-25	12978
+Vacuum	7.77284e-19	3.36263e-20	5973

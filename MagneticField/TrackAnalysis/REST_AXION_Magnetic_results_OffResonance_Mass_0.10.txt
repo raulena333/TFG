@@ -1,0 +1,9 @@
+Off resonance, dL : 10, Axion-Mass :0.1
+Direction	Probability	TimeProb (μs)	 TimeGet (ms)
+Central	1.34044e-27	5416.7	32473
+Extremo1	2.18775e-24	1502.6	23187
+Extremo2	2.02063e-24	1452.8	23231
+Fuera	6.22247e-25	1450.8	16815
+Random	1.34043e-27	1451.2	32390
+Random1	9.03249e-28	1422.3	32719
+Random2	8.26837e-28	1421.7	32963

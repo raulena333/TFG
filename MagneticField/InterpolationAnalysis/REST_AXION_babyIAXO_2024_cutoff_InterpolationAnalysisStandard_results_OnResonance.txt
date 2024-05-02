@@ -1,0 +1,5 @@
+Standard Integration 
+On resonance, ma: 0.351387 dL: 1
+Interpolation	Probability	Time(μs)
+Interpolation	6.2337e-19		72400
+No-Interpolation	6.23451e-19		71600

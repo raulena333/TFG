@@ -84,7 +84,7 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 200, Double_t Ea = 4.2,
     };
 
     std::vector<std::string> trackNames = {
-        "Central", "Extremo1", "Extremo2", "Random", "Random1", "Random2", "Outside"
+        "Central", "Extremo1", "Extremo2", "Random", "Random1", "Random2", "Fuera"
     };
 
     // Populate fieldTracks
@@ -192,7 +192,10 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 200, Double_t Ea = 4.2,
                     graph->GetXaxis()->SetTitle("Masa Axion (eV)");
                     graph->GetYaxis()->SetTitle("Probabilidad");
                     graph->GetXaxis()->SetRange(mi, mf);
-                    graph->GetYaxis()->SetRangeUser(1e-32, 1e-18);
+                    if(fieldName == "babyIAXO_2024_cutoff")
+                        graph->GetYaxis()->SetRangeUser(1e-31, 1e-18);
+                    else
+                        graph->GetYaxis()->SetRangeUser(1e-32, 1e-18);
                     graph->GetXaxis()->SetTitleSize(0.03); 
                     graph->GetXaxis()->SetTitleFont(40);  
                     graph->GetXaxis()->SetLabelSize(0.025); 
@@ -233,61 +236,61 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 200, Double_t Ea = 4.2,
             TCanvas *canvas_residuals = new TCanvas("canvas_residuals", "Residuals", 800, 600);
             canvas_residuals->Divide(2, 1);
 
-            // Calculate residuals between "random1" and "extreme1" against the "center" track
-            std::vector<double> residualValues_random1_center;
-            std::vector<double> residualValues_extreme1_center;
+            // Calculate residuals between "random2" and "outside" against the "center" track
+            std::vector<double> residualValues_random2_center;
+            std::vector<double> residualValues_outside_center;
             for (size_t j = 0; j < mass.size(); ++j) {
-                double residual_random1_center = std::abs((fieldTracks["Central"].probability[j] - fieldTracks["Random1"].probability[j])) / fieldTracks["Central"].probability[j] * 100.0;
-                double residual_extreme1_center = std::abs((fieldTracks["Central"].probability[j] - fieldTracks["Extremo1"].probability[j])) / fieldTracks["Central"].probability[j] * 100.0;
-                residualValues_random1_center.push_back(residual_random1_center);
-                residualValues_extreme1_center.push_back(residual_extreme1_center);
+                double residual_random2_center = std::abs((fieldTracks["Central"].probability[j] - fieldTracks["Random2"].probability[j])) / fieldTracks["Central"].probability[j] * 100.0;
+                double residual_outside_center = std::abs((fieldTracks["Central"].probability[j] - fieldTracks["Fuera"].probability[j])) / fieldTracks["Central"].probability[j] * 100.0;
+                residualValues_random2_center.push_back(residual_random2_center);
+                residualValues_outside_center.push_back(residual_outside_center);
             }
 
             // Create TGraphs for the residuals
-            TGraph *residuals_random1_center = new TGraph(mass.size(), &mass[0], residualValues_random1_center.data());
-            TGraph *residuals_extreme1_center = new TGraph(mass.size(), &mass[0], residualValues_extreme1_center.data());
-            residuals_random1_center->SetMarkerColor(kMagenta);
-            residuals_extreme1_center->SetMarkerColor(kBlue);
-            residuals_random1_center->SetMarkerStyle(8);
-            residuals_extreme1_center->SetMarkerStyle(8);
+            TGraph *residuals_random2_center = new TGraph(mass.size(), &mass[0], residualValues_random2_center.data());
+            TGraph *residuals_outside_center = new TGraph(mass.size(), &mass[0], residualValues_outside_center.data());
+            residuals_random2_center->SetMarkerColor(kBlue+1);
+            residuals_outside_center->SetMarkerColor(kGreen+1);
+            residuals_random2_center->SetMarkerStyle(8);
+            residuals_outside_center->SetMarkerStyle(8);
 
             // Draw residuals on the canvas
             canvas_residuals->cd(1);
             gPad->SetLogy();
-            residuals_random1_center->SetMarkerSize(0.3);
-            residuals_random1_center->Draw("AP");
-            residuals_random1_center->SetTitle("");
-            residuals_random1_center->GetYaxis()->SetTitle("Residuos (%)");
-            residuals_random1_center->GetXaxis()->SetTitle("Masa Axion (eV)");
-            residuals_random1_center->GetXaxis()->SetRange(mi, mf);
-            residuals_random1_center->GetXaxis()->SetTitleSize(0.04);
-            residuals_random1_center->GetXaxis()->SetLabelSize(0.03);
-            residuals_random1_center->GetYaxis()->SetTitleSize(0.04);
-            residuals_random1_center->GetYaxis()->SetLabelSize(0.03);
-            residuals_random1_center->GetYaxis()->SetTitleFont(62);
-            residuals_random1_center->GetYaxis()->SetTitleOffset(1.40);
-            residuals_random1_center->GetXaxis()->SetTitleFont(62);
-            residuals_random1_center->GetYaxis()->SetLabelFont(62);
-            residuals_random1_center->GetXaxis()->SetLabelFont(62);
+            residuals_random2_center->SetMarkerSize(0.3);
+            residuals_random2_center->Draw("AP");
+            residuals_random2_center->SetTitle("");
+            residuals_random2_center->GetYaxis()->SetTitle("Residuos (%)");
+            residuals_random2_center->GetXaxis()->SetTitle("Masa Axion (eV)");
+            residuals_random2_center->GetXaxis()->SetRange(mi, mf);
+            residuals_random2_center->GetXaxis()->SetTitleSize(0.04);
+            residuals_random2_center->GetXaxis()->SetLabelSize(0.03);
+            residuals_random2_center->GetYaxis()->SetTitleSize(0.04);
+            residuals_random2_center->GetYaxis()->SetLabelSize(0.03);
+            residuals_random2_center->GetYaxis()->SetTitleFont(62);
+            residuals_random2_center->GetYaxis()->SetTitleOffset(1.40);
+            residuals_random2_center->GetXaxis()->SetTitleFont(62);
+            residuals_random2_center->GetYaxis()->SetLabelFont(62);
+            residuals_random2_center->GetXaxis()->SetLabelFont(62);
             canvas_residuals->cd(1)->SetLeftMargin(0.15);
 
             canvas_residuals->cd(2);
             gPad->SetLogy();
-            residuals_extreme1_center->SetMarkerSize(0.3);
-            residuals_extreme1_center->Draw("AP");
-            residuals_extreme1_center->SetTitle("");
-            residuals_extreme1_center->GetYaxis()->SetTitle("Residuos (%)");
-            residuals_extreme1_center->GetXaxis()->SetTitle("Masa Axion (eV)");
-            residuals_extreme1_center->GetXaxis()->SetRange(mi, mf);
-            residuals_extreme1_center->GetXaxis()->SetTitleSize(0.04);
-            residuals_extreme1_center->GetXaxis()->SetLabelSize(0.03);
-            residuals_extreme1_center->GetYaxis()->SetTitleSize(0.04);
-            residuals_extreme1_center->GetYaxis()->SetLabelSize(0.03);
-            residuals_extreme1_center->GetYaxis()->SetTitleFont(62);
-            residuals_extreme1_center->GetYaxis()->SetTitleOffset(1.05);
-            residuals_extreme1_center->GetXaxis()->SetTitleFont(62);
-            residuals_extreme1_center->GetYaxis()->SetLabelFont(62);
-            residuals_extreme1_center->GetXaxis()->SetLabelFont(62);
+            residuals_outside_center->SetMarkerSize(0.3);
+            residuals_outside_center->Draw("AP");
+            residuals_outside_center->SetTitle("");
+            residuals_outside_center->GetYaxis()->SetTitle("Residuos (%)");
+            residuals_outside_center->GetXaxis()->SetTitle("Masa Axion (eV)");
+            residuals_outside_center->GetXaxis()->SetRange(mi, mf);
+            residuals_outside_center->GetXaxis()->SetTitleSize(0.04);
+            residuals_outside_center->GetXaxis()->SetLabelSize(0.03);
+            residuals_outside_center->GetYaxis()->SetTitleSize(0.04);
+            residuals_outside_center->GetYaxis()->SetLabelSize(0.03);
+            residuals_outside_center->GetYaxis()->SetTitleFont(62);
+            residuals_outside_center->GetYaxis()->SetTitleOffset(1.05);
+            residuals_outside_center->GetXaxis()->SetTitleFont(62);
+            residuals_outside_center->GetYaxis()->SetLabelFont(62);
+            residuals_outside_center->GetXaxis()->SetLabelFont(62);
 
             // Save canvas if required
             if (fSave) {                   
@@ -301,8 +304,8 @@ Int_t REST_Axion_AnalysisMagenticFieldPlot(Int_t nData = 200, Double_t Ea = 4.2,
 
             // Clean up residuals canvas
             delete canvas_residuals;
-            delete residuals_random1_center;
-            delete residuals_extreme1_center;
+            delete residuals_random2_center;
+            delete residuals_outside_center;
         }
         // Clean up
         delete axionField;

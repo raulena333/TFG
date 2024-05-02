@@ -21,7 +21,7 @@
 //***  (30, 30, 150)
 //***
 //*** Arguments by default are (in order):
-//*** - nData: Number of data points to generate (default: 20).
+//*** - nData: Number of data points to generate (default: 10).
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - mi: Initial axion mass in eV (default: 0.).

@@ -1,0 +1,6 @@
+On resonance, ma: 0.351575Accuracy: 0.1
+FieldName	Probability	Error	Time(ms)
+Bykovskiy2019	7.08279e-19	6.17971e-24	62
+Bykovskiy2020	7.0819e-19	6.27011e-24	1385
+Mentisk	6.40137e-19	2.85008e-22	8107
+MentiskCut	6.97736e-19	2.92318e-23	1646

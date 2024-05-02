@@ -213,9 +213,9 @@ Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, s
                     SetYRange(graphProb, 0.05);
                     if (ma != gas->GetPhotonMass(Ea)){
                         if(ma == 0.1)
-                            graphProb->GetYaxis()->SetRangeUser(1e-30, 1e-18);
+                            graphProb->GetYaxis()->SetRangeUser(1e-32, 1e-18);
                         else if(ma == 0.3)
-                            graphProb->GetYaxis()->SetRangeUser(1e-32, 1e-25);
+                            graphProb->GetYaxis()->SetRangeUser(1e-33, 1e-18);
                         gPad->SetLogy();
                     }
                     graphProb->GetXaxis()->SetTitleSize(0.03);

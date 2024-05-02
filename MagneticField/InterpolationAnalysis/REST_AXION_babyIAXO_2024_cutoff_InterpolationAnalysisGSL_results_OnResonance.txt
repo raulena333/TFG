@@ -1,0 +1,5 @@
+GSL Integration 
+On resonance, ma: 0.351387  Accuracy: 0.7
+Interpolation	Probability	Error	Time(ms)
+Interpolation	6.9786e-19	1.85005e-24	4353
+No-Interpolation	6.97484e-19	8.25107e-20	9744
