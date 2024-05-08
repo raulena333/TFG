@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+
+<TRestManager name="PlotOptics" title="Plot the optics before and in focal point" verboseLevel="info" >
+
+	<TRestAnalysisPlot name="restplot" title="Basic Plots" previewPlot="false" verboseLevel="info">
+ 
+ <canvas size="(750,300)" divide="(3,1)" save="OpticsSolarFlux_Observables_[fRunType].pdf"/> <!--.C/.root-->
+   
+    <plot name="entranceH" title="" xlabel="X [mm]" ylabel="Y [mm]" 
+			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="ON">
+			
+			<variable name="magnetEntrance_posX" nbins="400" range= "(-400,400)" />
+         <variable name="magnetEntrance_posY" nbins="400" range= "(-400,400)" />
+    </plot>
+
+    <plot name="afterOpticsH" title="" xlabel="X [mm]" ylabel="Y [mm]" 
+			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="ON">
+			
+			<variable name="afterOptics_posX" nbins="100" range= "(-400,400)" />
+         <variable name="afterOptics_posY" nbins="100" range= "(-400,400)" />
+         <cut variable="optics_efficiency" condition=">0" value="ON" />
+    </plot>
+
+    <plot name="focalH" title="" xlabel="X [mm]" ylabel="Y [mm]" 
+			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="ON">
+			
+			<variable name="final_posX" nbins="100" range= "(-10,10)" />
+         <variable name="final_posY" nbins="100" range= "(-10,10)" />
+         <cut variable="optics_efficiency" condition=">0" value="ON" />
+         <cut variable="window_transmission" condition=">0" value="ON" />
+    </plot>
+    
+  </TRestAnalysisPlot>
+	<addTask command="restplot->PlotCombinedCanvas()" value="ON"/>
+
+</TRestManager>

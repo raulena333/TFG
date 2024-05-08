@@ -5,12 +5,12 @@
         <constant name="opticsPosition" value="7000"/>
         <constant name="focalPosition" value="7538"/>
         <variable name="fieldName" value = "babyIAXO_2024_cutoff"/>
-        <variable name="BMaps" value = "Mentink_202401_cutoff(6,-6)"/>
+        <!--<variable name="BMaps" value = "Mentink_202401_cutoff(6,-6)"/>-->
         <variable name="REST_YAW" value="0"/>
         <variable name="REST_TAG" value="None"/>
-        <variable name="REST_EVENTS" value="5"/>
+        <variable name="REST_EVENTS" value="1000000"/>
         <variable name="REST_VACUUM" value="false"/>
-        <variable name="REST_GAS" value="xenon"/>
+        <variable name="REST_GAS" value="Helium"/>
         <variable name="REST_AXION_MASS" value="1e-3"/>
         <!-- <variable name="CONDOR_RUN" value="auto"/> -->
     </globals>
@@ -18,16 +18,16 @@
         <parameter name="experimentName" value="BabyIAXO"/>
         <parameter name="runType" value="rayTracing"/>
 		<parameter name="runNumber" value="auto"/>
-		<!-- <if condition="${REST_VACUUM}==false" >
-			<parameter name="runTag" value="Primakoff_XMM_mM_${REST_TAG}"/>
+		<if condition="${REST_VACUUM}==false" >
+			<parameter name="runTag" value="Primakoff_XMM_mM_[fRunNumber]"/>
 		</if>
 		<if condition="${REST_VACUUM}==true" >
-			<parameter name="runTag" value="Primakoff_XMM_mM_${REST_TAG}"/>
-		</if> -->
+			<parameter name="runTag" value="Primakoff_Vaccum_XMM_mM_[fRunNumber]"/>
+		</if>
         <parameter name="runDescription" value=""/>
         <parameter name="user" value="${USER}"/>
         <parameter name="verboseLevel" value="2"/>
-	<parameter name="outputFileName" value="run_gas_${REST_GAS}_${USER}_V[fVersion].root"/>
+	<parameter name="outputFileName" value="RunSolarFlux_[fRunType]_[fRunTag]_${USER}_V[fVersion].root"/>
 
         <TRestAxionSolarQCDFlux file="fluxes.rml" name="LennertHoofPrimakoff"/>
 
@@ -35,7 +35,7 @@
 
 		<if condition="${REST_VACUUM}==false" >
 			<TRestAxionBufferGas name="${REST_GAS}" verboseLevel="warning">
-				<gas name="Xe" density="0.005894g/cm^3"/>
+				<gas name="He" density="2.9836e-10kg/mm^3"/>
 			</TRestAxionBufferGas>
 		</if>
 
@@ -62,8 +62,8 @@
         <addProcess type="TRestAxionAnalysisProcess" name="initial" observables="all" value="OFF"/>
 
         <!-- We do not need to transport the axion. It is just to evaluate the axion at a given Z-position using the analysis process -->
-        <addProcess type="TRestAxionTransportProcess" zPosition="-11m" name="tom5m" value="OFF"/>
-        <addProcess type="TRestAxionAnalysisProcess" name="magnetEntrance" value="OFF">
+        <addProcess type="TRestAxionTransportProcess" zPosition="-11m" name="tom5m" value="ON"/>
+        <addProcess type="TRestAxionAnalysisProcess" name="magnetEntrance" value="ON">
             <observable name="posX"/>
             <observable name="posY"/>
             <observable name="posZ"/>
@@ -72,7 +72,7 @@
 
         <addProcess type="TRestAxionFieldPropagationProcess" name="axionPhoton" integrationStep="5cm" position="(0,0,-5)m" bufferGasAdditionalLength="5m" observables="all" verboseLevel="info"/>
         <!-- Checking the generator target defined by TRestAxionGeneratorProcess -->
-        <addProcess type="TRestAxionTransportProcess" zPosition="0" name="origin"/>
+        <addProcess type="TRestAxionTransportProcess" zPosition="0" name="origin" value="OFF"/>
         <addProcess type="TRestAxionAnalysisProcess" name="magnetExit" value="OFF">
             <observable name="posX"/>
             <observable name="posY"/>
@@ -88,12 +88,21 @@
             <parameter name="opticalAxis" value="false"/>
             <observable name="efficiency" value="ON"/>
         </addProcess>
-        <addProcess type="TRestAxionAnalysisProcess" name="afterOptics" value="OFF">
+        <addProcess type="TRestAxionAnalysisProcess" name="afterOptics" value="ON">
             <observable name="posX"/>
             <observable name="posY"/>
             <observable name="posZ"/>
             <observable name="R"/>
         </addProcess>
+
+        <addProcess type="TRestAxionTransportProcess" zPosition="focalPosition" name="focal" value="ON"/>
+        <addProcess type="TRestAxionAnalysisProcess" name="afterFocal" value="ON">
+            <observable name="posX"/>
+            <observable name="posY"/>
+            <observable name="posZ"/>
+            <observable name="R"/>
+        </addProcess>
+
         <addProcess type="TRestAxionTransmissionProcess" name="window" position="(0,0,focalPosition + opticsPosition)mm">
             <window name="MicromegasMylar"/>
             <window name="MicromegasStrongBack"/>
@@ -108,14 +117,8 @@
             <observable name="R"/>
         </addProcess>
 
-        <addProcess type="TRestAxionTransportProcess" zPosition="focalPosition+opticsPosition" name="origin"/>
-		<addProcess type="TRestAxionAnalysisProcess" name="final" >
-			<observable name="energy"  />
-			<observable name="posX" />
-			<observable name="posY" />
-			<observable name="posZ" />
-			<observable name="mass" />
-		</addProcess>
+        <addProcess type="TRestAxionTransportProcess" zPosition="focalPosition+opticsPosition" name="origin" value="ON"/>
+		<addProcess type="TRestAxionAnalysisProcess" name="final" observables="all" value="ON"/>
     </TRestProcessRunner>
     <addTask command="EventProcess-&gt;RunProcess()" value="ON"/>
 </TRestManager>
