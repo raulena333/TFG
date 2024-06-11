@@ -4,35 +4,35 @@
 
 	<TRestAnalysisPlot name="restplot" title="Basic Plots" previewPlot="false" verboseLevel="info">
  
- <canvas size="(800,600)" divide="(1,1)" save="ObservablesSolarFlux_[fRunType].C"/> <!--.C/.root-->
+ <canvas size="(800,600)" divide="(1,1)" save="ObservablesSolarFlux_[fRunType].pdf"/> <!--.C/.root-->
    
-    <plot name="" title="" xlabel="E (keV)" ylabel="Eventos" 
+    <plot name="" title="" xlabel="Energia (keV)" ylabel="Eventos" 
 			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="OFF">
 			
        <histo name="final_energy">
-				<variable name="final_energy" range="(0,10)" nbins="70" />
+				<variable name="final_energy" range="(0,10)" nbins="300" />
 				<parameter name="fillColor" value="4" />
        </histo>
 
        <histo name="final_energyCond1">
-            <variable name="final_energy" range="(0,10)" nbins="70" />
+            <variable name="final_energy" range="(0,10)" nbins="300" />
             <cut variable="optics_efficiency" condition=">0" value="ON" />
 				<parameter name="fillColor" value="4" />
        </histo>
 
        <histo name="final_energyCond2" weight="optics_efficiency" option="hist">
-            <variable name="final_energy" range="(0,10)" nbins="70" />
+            <variable name="final_energy" range="(0,10)" nbins="300" />
             <cut variable="optics_efficiency" condition=">0" value="OFF" />
 				<parameter name="fillColor" value="4" />
        </histo>
 
        <histo name="final_energyCond3" weight="optics_efficiency*window_transmission" option="hist">
-            <variable name="final_energy" range="(0,10)" nbins="70" />
+            <variable name="final_energy" range="(0,10)" nbins="300" />
 				<parameter name="fillColor" value="4" />
        </histo>
 
        <histo name="final_energyCond4" weight="optics_efficiency*window_transmission*axionPhoton_probability">
-            <variable name="final_energy" range="(0,10)" nbins="70" />
+            <variable name="final_energy" range="(0,10)" nbins="300" />
 				<parameter name="fillColor" value="4" />
        </histo>
     </plot>

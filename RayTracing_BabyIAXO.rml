@@ -19,15 +19,15 @@
         <parameter name="runType" value="rayTracing"/>
 		<parameter name="runNumber" value="auto"/>
 		<if condition="${REST_VACUUM}==false" >
-			<parameter name="runTag" value="Primakoff_XMM_mM_[fRunNumber]"/>
+			<parameter name="runTag" value="Primakoff_XMM_mM"/>
 		</if>
 		<if condition="${REST_VACUUM}==true" >
-			<parameter name="runTag" value="Primakoff_Vaccum_XMM_mM_[fRunNumber]"/>
+			<parameter name="runTag" value="Primakoff_Vaccum_XMM_mM"/>
 		</if>
         <parameter name="runDescription" value=""/>
         <parameter name="user" value="${USER}"/>
         <parameter name="verboseLevel" value="2"/>
-	<parameter name="outputFileName" value="RunSolarFlux_[fRunType]_[fRunTag]_${USER}_V[fVersion].root"/>
+	<parameter name="outputFileName" value="RunSolarFlux_[fRunType]_[fRunTag]_[fRunNumber]_${USER}_V[fVersion].root"/>
 
         <TRestAxionSolarQCDFlux file="fluxes.rml" name="LennertHoofPrimakoff"/>
 
