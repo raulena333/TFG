@@ -1,0 +1,16 @@
+<TRestDataSet name="DummySet">
+ 
+   <parameter name="startTime" value = "2024/05/5 00:00" />
+   <parameter name="endTime" value = "2024/05/9 00:00" />
+   <parameter name="filePattern" value="test*.root"/>
+
+   <observables list="magnetEntrance_posX" />
+   <observables list="magnetEntrance_posY" />
+   <observables list="afterOptics_posX" />
+   <observables list="afterOptics_posY" />
+   <observables list="optics_efficiency" />
+   <observables list="final_posX" />
+   <observables list="final_posY" />
+   <observables list="final_energy" />
+   <observables list="window_transmission" />
+</TRestDataSet>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+
+<TRestManager name="alphaTrack" title="alphaTrack" verboseLevel="info">
+  <TRestDataSetPlot name="alphaTrackPlot" title="Basic Plots for alpha tracks" previewPlot="true"
+  canvasSize="(1250,360)" canvasDivisions="(3,1)" verboseLevel="info" font_size="0.68" 
+  outputFileName="OpticsSolarFluxDataSet_Observables_rayTracing.C" save="test.C" >
+  
+  <TRestCut name="Window-Optics" verboseLevel="info">
+        <cut name="c2" variable="optics_efficiency" condition=">0"/>
+        <cut name="c3" variable="window_transmission" condition=">0" />
+    </TRestCut>
+
+    <TRestCut name="Optics" verboseLevel="info">
+        <cut name="c1" variable="optics_efficiency" condition=">0"/>
+    </TRestCut>
+   
+    <plot name="entranceH" title="" xlabel="X [mm]" ylabel="Y [mm]" 
+			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="OFF" save="1.C" >
+			
+			<variable name="magnetEntrance_posX" nbins="400" range= "(-400,400)" />
+         <variable name="magnetEntrance_posY" nbins="400" range= "(-400,400)" />
+    </plot>
+
+    <plot name="afterOpticsH" title="" xlabel="X [mm]" ylabel="Y [mm]" 
+			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="OFF">
+			
+			<variable name="afterOptics_posX" nbins="400" range= "(-400,400)" />
+      <variable name="afterOptics_posY" nbins="400" range= "(-400,400)" />
+        <addCut name="Window-Optics" vale="ON"/>
+ 
+     </plot>
+
+    <plot name="focalH" title="" xlabel="X [mm]" ylabel="Y [mm]" 
+			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="OFF" marginRight="0.15" >
+			
+			<variable name="final_posX" nbins="100" range= "(-10,10)" />
+         <variable name="final_posY" nbins="100" range= "(-10,10)" />
+         <addCut name="Optics" value="ON"/>
+         <addCut name="Window-Optics" value="ON"/>
+    </plot>
+  </TRestDataSetPlot>
+  <addTask command="alphaTrackPlot->PlotCombinedCanvas()" value="ON"/>
+</TRestManager>

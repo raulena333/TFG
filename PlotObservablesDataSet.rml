@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+
+<TRestManager name="SpecPlot" title="Example" verboseLevel="info" >
+
+  <TRestDataSetPlot  name="restplot" title="Basic Plots" previewPlot="true"
+  canvasSize="(800,600)" canvasDivisions="(1,1)" verboseLevel="info"
+  outputFileName="ObservablesSolarFluxDataSet_rayTracing.C">
+
+    <addCut name="Optics"/>
+    <TRestCut name="Optics" verboseLevel="info">
+        <cut name="c1" variable="optics_efficiency" condition=">0"/>
+    </TRestCut>
+
+    <plot name="" title="" xlabel="E (keV)" ylabel="Eventos" 
+			legend="OFF" logscale="false" value="ON" annotation="OFF" stats="OFF">
+			
+       <histo name="final_energy">
+		  <variable name="final_energy" range="(0,10)" nbins="400" />
+            <parameter name="fillColor" value="4" />
+       </histo>
+
+       <histo name="final_energyCond1">
+            <variable name="final_energy" range="(0,10)" nbins="400" />
+            <addCut name="Optics" value="ON" />
+            <parameter name="fillColor" value="4" />
+       </histo>
+
+       <histo name="final_energyCond2" weight="optics_efficiency" option="hist">
+            <variable name="final_energy" range="(0,10)" nbins="400" />
+             <addCut name="Optics" value="OFF" />
+		   <parameter name="fillColor" value="4" />
+       </histo>
+
+       <histo name="final_energyCond3" weight="optics_efficiency*window_transmission" option="hist">
+            <variable name="final_energy" range="(0,10)" nbins="400" />
+		 <parameter name="fillColor" value="4" />
+       </histo>
+
+    </plot>
+
+  </TRestDataSetPlot>
+	<addTask command="restplot->PlotCombinedCanvas()" value="ON"/>
+</TRestManager>
