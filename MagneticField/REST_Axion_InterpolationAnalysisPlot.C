@@ -54,8 +54,8 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", 
-                    Double_t mi = 0.2, Double_t mf = 0.5, Int_t dL = 1, Bool_t useLogScale =  true){
+Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 250, Double_t Ea = 4.2, std::string gasName = "He", 
+                    Double_t mi = 0.28, Double_t mf = 0.42, Int_t dL = 1, Bool_t useLogScale =  true){
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
     Double_t gasDensity = 2.9836e-10;
@@ -80,8 +80,8 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
     std::string folder = "InterpolationAnalysis/";
     for(const auto &fieldName : fieldNames){
         std::map<std::string, FieldTrack> fields;
-        fields["Interpolation"] = {true, std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName), std::make_unique<TRestAxionField>()};
-        fields["No-Interpolation"] = {false, std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName), std::make_unique<TRestAxionField>()};
+        fields["Interpolacion"] = {true, std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName), std::make_unique<TRestAxionField>()};
+        fields["No-Interpolacion"] = {false, std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName), std::make_unique<TRestAxionField>()};
 
         for(auto &field: fields){
             if (gas != nullptr) 
@@ -120,11 +120,68 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
         /// PLOT ///
         if(kPlot){
             // Create canvas to plot the probabilities against the mass
-            TCanvas *canvasProb = new TCanvas((fieldName + "_MassProbability").c_str(), (fieldName + "_MassProb").c_str(), 850, 673);
+            TCanvas *canvasProb = new TCanvas((fieldName + "_MassProbability").c_str(), (fieldName + "_MassProb").c_str(), 800, 600);
             canvasProb->cd();
 
+            // Pad for graphs
+            TPad *padTop = new TPad("PadTop", "", 0.001 ,0.3 ,0.999, 0.999);
+            padTop->SetTopMargin(0.10);
+            padTop->SetLeftMargin(0.16);
+            padTop->SetBottomMargin(0.0);
+            padTop->SetRightMargin(0.05);
+            padTop->SetBorderMode(-1);
+            padTop->Draw();
+
+            // Pad for residuals
+            TPad *padBottom = new TPad("PadBottom", "", 0.001 ,0.001 ,0.999, 0.3);
+            padBottom->SetTopMargin(0.0);
+            padBottom->SetLeftMargin(0.16);
+            padBottom->SetBottomMargin(0.45);
+            padBottom->SetRightMargin(0.05);
+            padBottom->SetBorderMode(-1);
+            padBottom->Draw();
+
+            // Calculate residuals between  setting it off and on
+            std::vector<Double_t> Residuals;
+            for (size_t i = 0; i < nData; ++i) {
+                Double_t residual = std::abs(fields["Interpolacion"].probability[i] - fields["No-Interpolacion"].probability[i]) / fields["Interpolacion"].probability[i] * 100.0 ;
+                Residuals.push_back(residual);
+            }
+
+            TGraph *graphInter = new TGraph(masses.size(), masses.data(), Residuals.data());
+
+            // Cambiar al pad inferior
+            padBottom->cd();
+            padBottom->Update();
+
+            // Configurar y dibujar el gráfico en el pad inferior
+            graphInter->SetMarkerStyle(8);
+            graphInter->SetMarkerSize(0.4);
+            graphInter->SetMarkerColor(kBlack);
+            graphInter->SetTitle("");
+            graphInter->GetXaxis()->SetRange(mi, mf);
+            graphInter->GetYaxis()->SetRangeUser(0, 100);
+            graphInter->GetXaxis()->SetTitle("Masa Axion (eV)");
+            graphInter->GetYaxis()->SetTitle("Residuos (%)");
+            graphInter->GetXaxis()->SetTitleSize(0.16);
+            graphInter->GetXaxis()->SetLabelSize(0.16);
+            graphInter->GetYaxis()->SetTitleSize(0.12);
+            graphInter->GetYaxis()->SetLabelSize(0.11);
+            graphInter->GetYaxis()->SetTitleFont(40);
+            graphInter->GetYaxis()->SetTitleOffset(0.6);
+            graphInter->GetXaxis()->SetTitleFont(40);
+            graphInter->GetYaxis()->SetLabelFont(40);
+            graphInter->GetXaxis()->SetLabelFont(40);
+            graphInter->GetYaxis()->SetNdivisions(505);
+            graphInter->Draw("AP");
+            
+            if(useLogScale)
+                padBottom->SetLogy();
+
+            padTop->cd();
+            padTop->Update();
             Int_t colorIndex = 1;
-            TLegend *legendProb = new TLegend(0.7, 0.8, 0.9, 0.9);
+            TLegend *legendProb = new TLegend(0.67, 0.75, 0.95, 0.9);
             //std::vector<TGraphErrors*> graphsProb;
             std::vector<TGraph*> graphsProb;
 
@@ -133,6 +190,20 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
                 TGraph *graph = new TGraph(masses.size(), masses.data(), field.second.probability.data());
                 graph->SetLineColor(colorIndex);
                 graph->SetLineWidth(1);
+                graph->SetTitle("");
+                graph->GetYaxis()->SetTitle("Probabilidad");
+                //graph->GetXaxis()->SetTitle("Masa Axion (eV)");
+                graph->GetXaxis()->SetRange(mi, mf);
+                graph->GetYaxis()->SetRangeUser(5e-30, 15e-18);
+                graph->GetXaxis()->SetTitleSize(0.07); 
+                graph->GetXaxis()->SetTitleFont(40);  
+                graph->GetXaxis()->SetLabelSize(0.07); 
+                graph->GetXaxis()->SetLabelFont(40);  
+                graph->GetYaxis()->SetTitleSize(0.07); 
+                graph->GetYaxis()->SetTitleFont(40);  
+                graph->GetYaxis()->SetLabelSize(0.07); 
+                graph->GetYaxis()->SetLabelFont(40);
+                graph->GetYaxis()->SetNdivisions(505);
                 if (colorIndex == 1) {
                     graph->Draw("ACP");
                 } else {
@@ -144,24 +215,11 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
                 graphsProb.push_back(graph);
             }
 
-            graphsProb[0]->SetTitle("");
-            graphsProb[0]->GetYaxis()->SetTitle("Probabilidad");
-            graphsProb[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
-            graphsProb[0]->GetXaxis()->SetRange(mi, mf);
-            graphsProb[0]->GetXaxis()->SetTitleSize(0.03); 
-            graphsProb[0]->GetXaxis()->SetTitleFont(40);  
-            graphsProb[0]->GetXaxis()->SetLabelSize(0.025); 
-            graphsProb[0]->GetXaxis()->SetLabelFont(40);  
-            graphsProb[0]->GetYaxis()->SetTitleSize(0.03); 
-            graphsProb[0]->GetYaxis()->SetTitleFont(40);  
-            graphsProb[0]->GetYaxis()->SetLabelSize(0.025); 
-            graphsProb[0]->GetYaxis()->SetLabelFont(40);
-
+            legendProb->SetTextSize(0.045);
             legendProb->Draw();
-
             // Set logarithmic scale if required
             if (useLogScale)
-                canvasProb->SetLogy();
+                padTop->SetLogy();
 
             if constexpr (kSave) {
                 if (!std::filesystem::exists(folder)) {
@@ -174,50 +232,6 @@ Int_t REST_Axion_InterpolationAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2,
 
             delete canvasProb;
             delete legendProb;
-
-            // Calculate residuals between  setting it off and on
-            std::vector<Double_t> Residuals;
-            for (size_t i = 0; i < nData; ++i) {
-                Double_t residual = std::abs(fields["Interpolation"].probability[i] - fields["No-Interpolation"].probability[i]) / fields["Interpolation"].probability[i] * 100.0 ;
-                Residuals.push_back(residual);
-            }
-
-            // Create canvas to plot residuals for Grid2 and Grid5
-            TCanvas *canvasResiduals = new TCanvas((fieldName + "_Residuals_" + std::to_string(dL)).c_str(), "Residuals", 500, 300);
-            canvasResiduals->cd();
-
-            TGraph *graphInter = nullptr;
-            graphInter = new TGraph(nData, masses.data(), Residuals.data());
-            graphInter->SetMarkerStyle(8);
-            graphInter->SetMarkerSize(0.4);
-            graphInter->SetMarkerColor(kBlack);
-            graphInter->SetTitle("");
-            graphInter->GetXaxis()->SetTitle("Masa Axion (eV)");
-            graphInter->GetYaxis()->SetTitle("Residuos (%)");
-            graphInter->GetXaxis()->SetTitleSize(0.04);
-            graphInter->GetXaxis()->SetLabelSize(0.03);
-            graphInter->GetYaxis()->SetTitleSize(0.04);
-            graphInter->GetYaxis()->SetLabelSize(0.03);
-            graphInter->GetYaxis()->SetTitleFont(62);
-            graphInter->GetYaxis()->SetTitleOffset(1.0);
-            graphInter->GetXaxis()->SetTitleFont(62);
-            graphInter->GetYaxis()->SetLabelFont(62);
-            graphInter->GetXaxis()->SetLabelFont(62);
-            graphInter->Draw("AP");
- 
-            if(useLogScale)
-                canvasResiduals->SetLogy();
-
-            if constexpr (kSave) {
-                if (!std::filesystem::exists(folder)) {
-                    std::filesystem::create_directory(folder);
-                }
-
-                std::string fileNameProb = fieldName + "_SProbabilityInterpolationResidual.pdf";
-                canvasProb->SaveAs((folder + fileNameProb).c_str());
-            }
-
-            delete canvasResiduals;
         }
 
         // Save times for both 

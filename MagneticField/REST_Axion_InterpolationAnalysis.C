@@ -48,7 +48,7 @@ struct FieldTrack {
 
 constexpr bool kDebug = true;
 
-Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 20, Double_t Ea = 4.2, std::string gasName = "He", 
+Int_t REST_Axion_InterpolationAnalysis(Int_t nData = 10, Double_t Ea = 4.2, std::string gasName = "He", 
                     Double_t m1 = 0.01, Double_t m2 = 0.2 , Double_t accuracy = 0.8){
 
     // Create Variables

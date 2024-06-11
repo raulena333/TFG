@@ -66,8 +66,8 @@ Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 10, Double_t Ea = 4.2, Double_t 
 
     // Define all four fields
     std::map<std::string, FieldInfo> fields;
-    fields["MentiskCut"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO_2024_cutoff"), std::make_unique<TRestAxionField>()};
-    fields["Mentisk"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO_2024"), std::make_unique<TRestAxionField>()};
+    fields["MentinkCut"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO_2024_cutoff"), std::make_unique<TRestAxionField>()};
+    fields["Mentink"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO_2024"), std::make_unique<TRestAxionField>()};
     fields["Bykovskiy2019"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO"), std::make_unique<TRestAxionField>()};
     fields["Bykovskiy2020"] = {std::make_unique<TRestAxionMagneticField>(cfgFileName, "babyIAXO_HD"), std::make_unique<TRestAxionField>()};
 
@@ -87,8 +87,10 @@ Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 10, Double_t Ea = 4.2, Double_t 
         if (gas != nullptr) {
             field.second.axionField->AssignBufferGas(gas.get());
         }
-        if(h == 1)
+        if(h == 1){
             field.second.magneticField->DrawTrackProfile(TVector3(0,0,11000), 100, fieldNames, true);
+            h++;
+        }
         field.second.magneticField->SetTrack(position, direction);
         field.second.axionField->AssignMagneticField(field.second.magneticField.get());
     } 
@@ -102,7 +104,7 @@ Int_t REST_Axion_BMapsSysAnalysis(Int_t nData = 10, Double_t Ea = 4.2, Double_t 
             masses.push_back(gas != nullptr ? gas->GetPhotonMass(Ea) : 0);
     }
 
-    std::vector<Double_t> accuracyValues = {0.1, 0.25, 0.5};
+    std::vector<Double_t> accuracyValues = {0.25};
     for (const auto &accuracy : accuracyValues){
         // Iterate over each mass and map field
         if(kDebug){    

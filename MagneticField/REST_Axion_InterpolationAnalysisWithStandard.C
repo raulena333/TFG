@@ -24,7 +24,6 @@
 //*** - Ea: Axion energy in keV (default: 4.2).
 //*** - gasName: Gas name (default: "He").
 //*** - m1: Axion mass in eV (default: 0.01).
-//*** - m2: Axion mass in eV (default: 0.3).
 //*** - Accuracy: Accuracy value for integration in GSL, depends on the axion mass (default 0.5).
 //*** - dL: differential element in mm (default 10).
 //***
@@ -59,7 +58,7 @@ struct FieldTrack {
 constexpr bool kDebug = true;
 
 Int_t REST_Axion_InterpolationAnalysisWithStandard(Int_t nData = 5, Double_t Ea = 4.2, std::string gasName = "He", 
-                    Double_t m1 = 0.01, Double_t m2 = 0.3 , Double_t accuracy = 0.7, Double_t dL = 1){
+                    Double_t m1 = 0.1, Double_t accuracy = 0.25, Double_t dL = 1){
 
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff"};
@@ -77,11 +76,11 @@ Int_t REST_Axion_InterpolationAnalysisWithStandard(Int_t nData = 5, Double_t Ea 
 
     // Determine masses based on resonance condition
     std::vector<Double_t> masses;
-    for (unsigned i = 0; i < 3; ++i) {
+    for (unsigned i = 0; i < 2; ++i) {
         if (gas) {
-            masses.push_back(i == 0 ? m1 : (i == 1 ? m2 : gas->GetPhotonMass(Ea)));
+            masses.push_back(i == 0 ? m1 : gas->GetPhotonMass(Ea));
         } else {
-            masses.push_back(i == 0 ? m1 : m2);
+            masses.push_back(i == 0 ? m1 : 0);
         }
     }
 

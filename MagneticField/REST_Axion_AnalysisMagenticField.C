@@ -52,7 +52,7 @@ struct FieldTrack {
 };
 
 Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 10, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.1,
-                                        Double_t m2 = 0.01, Double_t dL = 10.0) {
+                                        Double_t m2 = 0.01, Double_t dL = 10) {
     const bool fDebug = true;
     const bool fPlot = true;
     const bool fSave = true;
@@ -98,7 +98,7 @@ Int_t REST_Axion_AnalysisMagenticField(Int_t nData = 10, Double_t Ea = 4.2, std:
 
     // Save Plot of Tracks
     if(fPlot)
-        field->DrawTracks(startPoints, endPoints, 100, fSave);
+        field->DrawTracks(startPoints, endPoints, trackNames, 100, fSave, 0);
 
     // Create an instance of TRestAxionBufferGas if gasName is provided
     std::unique_ptr<TRestAxionBufferGas> gas = nullptr;

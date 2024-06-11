@@ -51,8 +51,8 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", 
-                                  Double_t mi = 0.2, Double_t mf = 0.5, Bool_t useLogScale = true) {
+Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 150\left\{\right\} , Double_t Ea = 4.2, std::string gasName = "He", 
+                                  Double_t mi = 0.32, Double_t mf = 0.38, Bool_t useLogScale = true) {
     // Mesh Map Definitions in mm
     std::vector<TVector3> meshSizes = {
         TVector3(10,10,50),
@@ -105,8 +105,8 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
         }  
 
         // Iterate for saome accuracys to test the runTime
-        // std::vector<Double_t> accuracyValues = {0.5, 1.};
-        std::vector<Double_t> accuracyValues = {0.25, 0.5};
+        // std::vector<Double_t> accuracyValues = {0.2, 0.5};
+        std::vector<Double_t> accuracyValues = {0.25};
         for(const auto &accuracy : accuracyValues){
             for (auto& field : fields) {
                 field.second.probability.clear();
@@ -157,10 +157,12 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                 // Create canvas to plot the probabilities against the mass
                 TCanvas *canvasProb = new TCanvas((fieldName + "_MassProbability" + std::to_string(accuracy)).c_str(), (fieldName + "_MassProb").c_str(), 800, 600);
                 canvasProb->cd();
+                gPad->SetLeftMargin(0.15);
+                gPad->SetBottomMargin(0.14);
 
                 Int_t colorIndex = 0;
-                TLegend *legendProb = new TLegend(0.7, 0.7, 0.9, 0.9);
-                std::vector<TGraphErrors*> graphsProb;
+                TLegend *legendProb = new TLegend(0.625, 0.6, 0.9, 0.9);
+                std::vector<TGraphErrors*> graphProb;
 
                 for (const auto &field : fields) {
                     TGraphErrors *graph = new TGraphErrors(masses.size(), masses.data(), field.second.probability.data(), nullptr, field.second.error.data());
@@ -168,6 +170,18 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                     graph->SetLineWidth(1);
                     graph->GetYaxis()->SetRangeUser(1e-32, 1e-18);
                     graph->SetTitle("");
+                    graph->GetYaxis()->SetTitle("Probabilidad");
+                    graph->GetXaxis()->SetTitle("Masa Axion (eV)");
+                    graph->GetXaxis()->SetRange(mi, mf);
+                    graph->GetYaxis()->SetRangeUser(1e-26, 1e-18);
+                    graph->GetXaxis()->SetTitleSize(0.055); 
+                    graph->GetXaxis()->SetTitleFont(40);  
+                    graph->GetXaxis()->SetLabelSize(0.055); 
+                    graph->GetXaxis()->SetLabelFont(40);  
+                    graph->GetYaxis()->SetTitleSize(0.055); 
+                    graph->GetYaxis()->SetTitleFont(40);  
+                    graph->GetYaxis()->SetLabelSize(0.055); 
+                    graph->GetYaxis()->SetLabelFont(40); 
                     if (colorIndex == 0) {
                         graph->Draw("ACP");
                     } else {
@@ -179,22 +193,10 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                     legendProb->AddEntry(graph, meshSizeStr.c_str(), "l");
                     colorIndex++;
 
-                    graphsProb.push_back(graph);
+                    graphProb.push_back(graph);
                 }
 
-                graphsProb[0]->SetTitle("");
-                graphsProb[0]->GetYaxis()->SetTitle("Probabilidad");
-                graphsProb[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
-                graphsProb[0]->GetXaxis()->SetRange(mi, mf);
-                graphsProb[0]->GetYaxis()->SetRangeUser(1e-32, 1e-19);
-                graphsProb[0]->GetXaxis()->SetTitleSize(0.04); 
-                graphsProb[0]->GetXaxis()->SetTitleFont(40);  
-                graphsProb[0]->GetXaxis()->SetLabelSize(0.03); 
-                graphsProb[0]->GetXaxis()->SetLabelFont(40);  
-                graphsProb[0]->GetYaxis()->SetTitleSize(0.03); 
-                graphsProb[0]->GetYaxis()->SetTitleFont(40);  
-                graphsProb[0]->GetYaxis()->SetLabelSize(0.04); 
-                graphsProb[0]->GetYaxis()->SetLabelFont(40); 
+                legendProb->SetTextSize(0.045);
                 legendProb->Draw();
 
                 // Set logarithmic scale if required
@@ -204,9 +206,11 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                 // Create the canvas to plot the runTime of each grid
                 TCanvas *canvasRun = new TCanvas((fieldName + "_MassRunTime" + std::to_string(accuracy)).c_str(), (fieldName + "_MassRun").c_str(), 800, 600);
                 canvasRun->cd();
+                gPad->SetLeftMargin(0.15);
+                gPad->SetBottomMargin(0.14);
 
                 colorIndex = 0;
-                TLegend *legendRun = new TLegend(0.7, 0.7, 0.9, 0.9);
+                TLegend *legendRun = new TLegend(0.625, 0.65, 0.9, 0.9);
                 std::vector<TGraph*> graphsRun;
 
                 for (const auto &field : fields) {
@@ -214,6 +218,17 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                     graph->SetLineColor(colors[colorIndex]);
                     graph->SetLineWidth(1);
                     graph->SetTitle("");
+                    graph->GetYaxis()->SetTitle("Tiempo computacional (ms)");
+                    graph->GetXaxis()->SetTitle("Masa Axion (eV)");
+                    graph->GetXaxis()->SetRange(mi, mf);
+                    graph->GetXaxis()->SetTitleSize(0.055); 
+                    graph->GetXaxis()->SetTitleFont(40);  
+                    graph->GetXaxis()->SetLabelSize(0.055); 
+                    graph->GetXaxis()->SetLabelFont(40);  
+                    graph->GetYaxis()->SetTitleSize(0.055); 
+                    graph->GetYaxis()->SetTitleFont(40);  
+                    graph->GetYaxis()->SetLabelSize(0.055); 
+                    graph->GetYaxis()->SetLabelFont(40); 
                     if (colorIndex == 0) {
                         graph->Draw("ACP");
                     } else {
@@ -228,18 +243,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                     graphsRun.push_back(graph);
                 }
 
-                graphsRun[0]->SetTitle("");
-                graphsRun[0]->GetYaxis()->SetTitle("Tiempo computacional (ms)");
-                graphsRun[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
-                graphsRun[0]->GetXaxis()->SetRange(mi, mf);
-                graphsRun[0]->GetXaxis()->SetTitleSize(0.04); 
-                graphsRun[0]->GetXaxis()->SetTitleFont(40);  
-                graphsRun[0]->GetXaxis()->SetLabelSize(0.03); 
-                graphsRun[0]->GetXaxis()->SetLabelFont(40);  
-                graphsRun[0]->GetYaxis()->SetTitleSize(0.04); 
-                graphsRun[0]->GetYaxis()->SetTitleFont(40);  
-                graphsRun[0]->GetYaxis()->SetLabelSize(0.03); 
-                graphsRun[0]->GetYaxis()->SetLabelFont(40); 
+                legendRun->SetTextSize(0.045);
                 legendRun->Draw();
 
                 if (useLogScale)
@@ -282,7 +286,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                 }
 
                 // Create canvas to plot residuals for Grid2 and Grid5
-                TCanvas *canvasResiduals = new TCanvas((fieldName + "_Residuals_" + std::to_string(accuracy)).c_str(), "Residuals", 1000, 300);
+                TCanvas *canvasResiduals = new TCanvas((fieldName + "_Residuals_" + std::to_string(accuracy)).c_str(), "Residuals", 900, 300);
                 canvasResiduals->Divide(2, 1);
 
                 // Plot residuals for Grid2
@@ -292,20 +296,20 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                     if (residual.first == "Grid2") {
                         graphGrid2 = new TGraph(nData, masses.data(), residual.second.data());
                         graphGrid2->SetMarkerStyle(8);
-                        graphGrid2->SetMarkerSize(0.4);
+                        graphGrid2->SetMarkerSize(0.5);
                         graphGrid2->SetMarkerColor(kCyan-3);
                         graphGrid2->SetTitle("");
                         graphGrid2->GetXaxis()->SetTitle("Masa Axion (eV)");
                         graphGrid2->GetYaxis()->SetTitle("Residuos (%)");
-                        graphGrid2->GetXaxis()->SetTitleSize(0.04);
-                        graphGrid2->GetXaxis()->SetLabelSize(0.03);
-                        graphGrid2->GetYaxis()->SetTitleSize(0.04);
-                        graphGrid2->GetYaxis()->SetLabelSize(0.03);
-                        graphGrid2->GetYaxis()->SetTitleFont(62);
+                        graphGrid2->GetXaxis()->SetTitleSize(0.05);
+                        graphGrid2->GetXaxis()->SetLabelSize(0.05);
+                        graphGrid2->GetYaxis()->SetTitleSize(0.05);
+                        graphGrid2->GetYaxis()->SetLabelSize(0.05);
+                        graphGrid2->GetYaxis()->SetTitleFont(40);
                         graphGrid2->GetYaxis()->SetTitleOffset(1.0);
-                        graphGrid2->GetXaxis()->SetTitleFont(62);
-                        graphGrid2->GetYaxis()->SetLabelFont(62);
-                        graphGrid2->GetXaxis()->SetLabelFont(62);
+                        graphGrid2->GetXaxis()->SetTitleFont(40);
+                        graphGrid2->GetYaxis()->SetLabelFont(40);
+                        graphGrid2->GetXaxis()->SetLabelFont(40);
                         graphGrid2->Draw("AP");
                         break;
                     }
@@ -319,20 +323,20 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                     if (residual.first == "Grid5") {
                         graphGrid5 = new TGraph(nData, masses.data(), residual.second.data());
                         graphGrid5->SetMarkerStyle(8);
-                        graphGrid5->SetMarkerSize(0.4);
+                        graphGrid5->SetMarkerSize(0.5);
                         graphGrid5->SetMarkerColor(kRed-3);
                         graphGrid5->SetTitle("");
                         graphGrid5->GetXaxis()->SetTitle("Masa Axion (eV)");
                         graphGrid5->GetYaxis()->SetTitle("Residuos (%)");
-                        graphGrid5->GetXaxis()->SetTitleSize(0.04);
-                        graphGrid5->GetXaxis()->SetLabelSize(0.03);
-                        graphGrid5->GetYaxis()->SetTitleSize(0.04);
-                        graphGrid5->GetYaxis()->SetLabelSize(0.03);
-                        graphGrid5->GetYaxis()->SetTitleFont(62);
+                        graphGrid5->GetXaxis()->SetTitleSize(0.05);
+                        graphGrid5->GetXaxis()->SetLabelSize(0.05);
+                        graphGrid5->GetYaxis()->SetTitleSize(0.05);
+                        graphGrid5->GetYaxis()->SetLabelSize(0.05);
+                        graphGrid5->GetYaxis()->SetTitleFont(40);
                         graphGrid5->GetYaxis()->SetTitleOffset(1.0);
-                        graphGrid5->GetXaxis()->SetTitleFont(62);
-                        graphGrid5->GetYaxis()->SetLabelFont(62);
-                        graphGrid5->GetXaxis()->SetLabelFont(62);
+                        graphGrid5->GetXaxis()->SetTitleFont(40);
+                        graphGrid5->GetYaxis()->SetLabelFont(40);
+                        graphGrid5->GetXaxis()->SetLabelFont(40);
                         graphGrid5->Draw("AP"); 
                         break; 
                     }
@@ -354,7 +358,7 @@ Int_t REST_Axion_GridAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::str
                 // Clean up
                 delete legendProb;
                 delete legendRun;
-                for (auto &graph : graphsProb) {
+                for (auto &graph : graphProb) {
                     delete graph;
                 }
                 for (auto &graph : graphsRun) {

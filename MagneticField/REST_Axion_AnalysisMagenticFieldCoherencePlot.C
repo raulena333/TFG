@@ -82,7 +82,8 @@ Int_t REST_Axion_AnalysisMagenticFieldCoherencePlot(Int_t nData = 200, Double_t 
     if (kPlot) {
         // Create a canvas to display the plot
         TCanvas *canvas = new TCanvas("canvas", "Probability vs. Axion Mass", 800, 600);
-        TLegend *legend = new TLegend(0.7, 0.7, 0.9, 0.9);
+        TLegend *legend = new TLegend(0.62, 0.67, 0.9, 0.9);
+        gPad->SetLeftMargin(0.14);
 
         // Define color options for the graphs
         std::vector<Color_t> colors = {kBlack, kBlue, kRed, kGreen, kCyan};
@@ -93,26 +94,30 @@ Int_t REST_Axion_AnalysisMagenticFieldCoherencePlot(Int_t nData = 200, Double_t 
             graph->SetLineColor(colors[j]);
             graph->SetLineWidth(1);
             legend->AddEntry(graph, Form("Lcoh = %d", coherenceLengths[j]), "l");
+
+            graph->SetTitle("");
+            graph->GetYaxis()->SetTitle("Probabilidad");
+            graph->GetXaxis()->SetTitle("Masa Axion (eV)");
+            graph->GetXaxis()->SetRange(mi, mf);
+            graph->GetYaxis()->SetRangeUser(1e-27, 1e-17);
+            graph->GetXaxis()->SetTitleSize(0.04); 
+            graph->GetXaxis()->SetTitleFont(40);  
+            graph->GetXaxis()->SetLabelSize(0.04); 
+            graph->GetXaxis()->SetLabelFont(40);  
+            graph->GetYaxis()->SetTitleSize(0.04); 
+            graph->GetYaxis()->SetTitleFont(40);  
+            graph->GetYaxis()->SetLabelSize(0.04); 
+
             if (j == 0)
                 graph->Draw("ACP");
             else
                 graph->Draw("CP SAME");
         }
 
-        graphs[0]->SetTitle("");
-        graphs[0]->GetYaxis()->SetTitle("Probability");
-        graphs[0]->GetXaxis()->SetTitle("Axion Mass (eV)");
-        graphs[0]->GetXaxis()->SetRange(mi, mf);
-        graphs[0]->GetYaxis()->SetRangeUser(1e-27, 1e-18);
-        graphs[0]->GetXaxis()->SetTitleSize(0.03); 
-        graphs[0]->GetXaxis()->SetTitleFont(40);  
-        graphs[0]->GetXaxis()->SetLabelSize(0.025); 
-        graphs[0]->GetXaxis()->SetLabelFont(40);  
-        graphs[0]->GetYaxis()->SetTitleSize(0.03); 
-        graphs[0]->GetYaxis()->SetTitleFont(40);  
-        graphs[0]->GetYaxis()->SetLabelSize(0.025); 
-
-        canvas->SetLogy(useLogScale);
+        gPad->SetLeftMargin(0.145);
+        gPad->SetBottomMargin(0.13);
+        gPad->SetLogy(useLogScale);
+        legend->SetTextSize(0.0425);
         legend->Draw();   
         canvas->Update();
 
