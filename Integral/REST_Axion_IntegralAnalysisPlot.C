@@ -45,8 +45,8 @@ constexpr bool kDebug = true;
 constexpr bool kPlot = true;
 constexpr bool kSave = true;
 
-Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.2, 
-            Double_t mf = 0.5, Bool_t useLogScale = true, Double_t dL = 10){
+Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 150, Double_t Ea = 4.2, std::string gasName = "He", Double_t mi = 0.28, 
+            Double_t mf = 0.42, Bool_t useLogScale = true, Double_t dL = 10){
 
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", "babyIAXO_2024"};
@@ -62,15 +62,15 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
 
     for(const auto &fieldName : fieldNames){
         std::map<std::string, TypeIntegration> integrations = {
-            {"Standard-Integral", {}},
-            {"GSL-Integral", {}}
+            {"Integral-Estandar", {}},
+            {"Integral-GSL", {}}
         };
 
         Double_t accuracy;
         if (fieldName == "babyIAXO_2024_cutoff")
-            accuracy = 0.2;
+            accuracy = 0.25;
         else
-            accuracy = 0.2;
+            accuracy = 0.3;
         // Create magnetic field
         auto magneticField = std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName);
 
@@ -104,9 +104,9 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
             auto end_timeGSL = std::chrono::high_resolution_clock::now();
             auto durationGSL = std::chrono::duration_cast<std::chrono::microseconds>(end_timeGSL - start_timeGSL);
 
-            integrations["GSL-Integral"].probability.push_back(probFieldGSL.first);
-            integrations["GSL-Integral"].error.push_back(probFieldGSL.second);
-            integrations["GSL-Integral"].timeComputation.push_back(durationGSL.count());
+            integrations["Integral-GSL"].probability.push_back(probFieldGSL.first);
+            integrations["Integral-GSL"].error.push_back(probFieldGSL.second);
+            integrations["Integral-GSL"].timeComputation.push_back(durationGSL.count());
 
             if(kDebug){
                 std::cout << "Integration using GSL" << std::endl;
@@ -122,9 +122,9 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
             auto end_timeStandard = std::chrono::high_resolution_clock::now();
             auto durationStandard = std::chrono::duration_cast<std::chrono::microseconds>(end_timeStandard - start_timeStandard);
 
-            integrations["Standard-Integral"].probability.push_back(probFieldStandard);
-            integrations["Standard-Integral"].error.push_back(0);
-            integrations["Standard-Integral"].timeComputation.push_back(durationStandard.count() + durationM.count());
+            integrations["Integral-Estandar"].probability.push_back(probFieldStandard);
+            integrations["Integral-Estandar"].error.push_back(0);
+            integrations["Integral-Estandar"].timeComputation.push_back(durationStandard.count() + durationM.count());
 
             if(kDebug){
                 std::cout << "Integration using standard" << std::endl;
@@ -137,16 +137,52 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
 
         if(kPlot){
              // Create TCanvas for plotting probability vs. mass
-            TCanvas *canvasProb = new TCanvas((fieldName + "_MassProbabilityBoth").c_str(), (fieldName + "_MassProb").c_str(), 850, 673);
+            TCanvas *canvasProb = new TCanvas((fieldName + "_MassProbabilityBoth").c_str(), (fieldName + "_MassProb").c_str(), 600, 500);
             canvasProb->cd();
 
+            // Pad for graphs
+            TPad *padTop = new TPad("PadTop", "", 0.0 ,0.3 ,1.0, 1.0);
+            padTop->SetTopMargin(0.10);
+            padTop->SetLeftMargin(0.165);
+            padTop->SetBottomMargin(0.0);
+            padTop->SetRightMargin(0.05);
+            padTop->SetBorderMode(-1);
+            padTop->Draw();
+            
+            // Pad for residuals
+            TPad *padBottom = new TPad("PadBottom", "", 0.0 ,0.0 ,1.0, 0.3);
+            padBottom->SetTopMargin(0.0);
+            padBottom->SetLeftMargin(0.165);
+            padBottom->SetBottomMargin(0.40);
+            padBottom->SetRightMargin(0.05);
+            padBottom->SetBorderMode(-1);
+            padBottom->Draw();
+
+            padTop->cd();
             Int_t colorIndex = 1;
-            TLegend *legendProb = new TLegend(0.7, 0.8, 0.9, 0.9);
+            TLegend *legendProb = new TLegend(0.65, 0.7, 0.95, 0.9);
             std::vector<TGraph*> graphsProb;
             for (const auto &integration : integrations) {
                 TGraph *graph = new TGraphErrors(mass.size(), mass.data(), integration.second.probability.data());
                 graph->SetLineColor(colorIndex);
                 graph->SetLineWidth(1);
+                graph->SetTitle("");
+                graph->GetYaxis()->SetTitle("Probabilidad");
+                //graph->GetXaxis()->SetTitle("Masa Axion (eV)");
+                graph->GetXaxis()->SetRange(mi, mf);
+                if (fieldName == "babyIAXO_2024_cutoff")
+                    graph->GetYaxis()->SetRangeUser(15e-30, 1e-18);
+                else
+                    graph->GetYaxis()->SetRangeUser(15e-31, 1e-18);
+                graph->GetXaxis()->SetTitleSize(0.07); 
+                graph->GetXaxis()->SetTitleFont(40);  
+                graph->GetXaxis()->SetLabelSize(0.07); 
+                graph->GetXaxis()->SetLabelFont(40);  
+                graph->GetYaxis()->SetTitleSize(0.07); 
+                graph->GetYaxis()->SetTitleFont(40);  
+                graph->GetYaxis()->SetLabelSize(0.07); 
+                graph->GetYaxis()->SetLabelFont(40);
+                graph->GetYaxis()->SetNdivisions(505);
                 if (colorIndex == 1) {
                     graph->Draw("ACP");
                 } else {
@@ -158,34 +194,54 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
                 graphsProb.push_back(graph);
             }
 
-            graphsProb[0]->SetTitle("");
-            graphsProb[0]->GetYaxis()->SetTitle("Probabilidad");
-            graphsProb[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
-            graphsProb[0]->GetXaxis()->SetRange(mi, mf);
-            if (fieldName == "babyIAXO_2024_cutoff")
-                graphsProb[0]->GetYaxis()->SetRangeUser(1e-30, 1e-19);
-            else
-                graphsProb[0]->GetYaxis()->SetRangeUser(1e-31, 1e-19);
-            graphsProb[0]->GetXaxis()->SetTitleSize(0.03); 
-            graphsProb[0]->GetXaxis()->SetTitleFont(40);  
-            graphsProb[0]->GetXaxis()->SetLabelSize(0.025); 
-            graphsProb[0]->GetXaxis()->SetLabelFont(40);  
-            graphsProb[0]->GetYaxis()->SetTitleSize(0.03); 
-            graphsProb[0]->GetYaxis()->SetTitleFont(40);  
-            graphsProb[0]->GetYaxis()->SetLabelSize(0.025); 
-            graphsProb[0]->GetYaxis()->SetLabelFont(40); 
+            legendProb->SetTextSize(0.0535);
             legendProb->Draw();
-
             // Set logarithmic scale if required
             if (useLogScale)
-                canvasProb->SetLogy();
+                padTop->SetLogy();
 
-           // Create the canvas to plot the runTime of each integral
-            TCanvas *canvasRun = new TCanvas((fieldName + "_MassRunTime").c_str(), (fieldName + "_MassRun").c_str(), 850, 673);
+            // Create the pad to plot the residuals of probability between Standard and GSL integrals
+            colorIndex = 1;
+            std::vector<Double_t> residuals;
+
+            for (size_t j = 0; j < mass.size(); ++j) {
+                Double_t resi = std::abs(integrations["Integral-Estandar"].probability[j] - integrations["Integral-GSL"].probability[j]) / integrations["Integral-Estandar"].probability[j] * 100.0;
+                residuals.push_back(resi);
+            }
+            padBottom->cd();
+
+            TGraph *graphInter = nullptr;
+            graphInter = new TGraph(nData, mass.data(), residuals.data());
+            graphInter->SetMarkerStyle(8);
+            graphInter->SetMarkerSize(0.4);
+            graphInter->SetMarkerColor(kBlack);
+            graphInter->SetTitle("");
+            graphInter->GetXaxis()->SetTitle("Masa Axion (eV)");
+            graphInter->GetYaxis()->SetTitle("Residuos (%)");
+            graphInter->GetXaxis()->SetTitleSize(0.16);
+            graphInter->GetXaxis()->SetLabelSize(0.16);
+            graphInter->GetYaxis()->SetTitleSize(0.12);
+            graphInter->GetYaxis()->SetLabelSize(0.11);
+            graphInter->GetYaxis()->SetTitleFont(40);
+            graphInter->GetYaxis()->SetTitleOffset(0.65);
+            graphInter->GetXaxis()->SetTitleFont(40);
+            graphInter->GetYaxis()->SetLabelFont(40);
+            graphInter->GetXaxis()->SetLabelFont(40);
+            graphInter->GetYaxis()->SetNdivisions(505);
+            graphInter->Draw("AP");
+
+            if (useLogScale)
+                padBottom->SetLogy();
+
+
+            // Create the canvas to plot the runTime of each integral
+            TCanvas *canvasRun = new TCanvas((fieldName + "_MassRunTime").c_str(), (fieldName + "_MassRun").c_str(), 600, 500);
             canvasRun->cd();
 
+            gPad->SetLeftMargin(0.138);
+            gPad->SetBottomMargin(0.15);
             colorIndex = 1;
-            TLegend *legendRun = new TLegend(0.7, 0.8, 0.9, 0.9);
+            TLegend *legendRun = new TLegend(0.58, 0.75, 0.9, 0.9);
             std::vector<TGraph*> graphsRun;
 
             for (const auto &integration : integrations) {
@@ -196,6 +252,22 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
                 TGraph *graph = new TGraph(mass.size(), mass.data(), runtime_seconds.data());
                 graph->SetLineColor(colorIndex);
                 graph->SetLineWidth(1);
+                graph->SetTitle("");
+                graph->GetYaxis()->SetTitle("Tiempo Computacional (s)");
+                graph->GetXaxis()->SetTitle("Masa Axion (eV)");
+                graph->GetXaxis()->SetLimits(mi, mf); // Set x-axis limits
+                graph->GetXaxis()->SetTitleSize(0.055); 
+                graph->GetXaxis()->SetTitleFont(40);  
+                graph->GetXaxis()->SetLabelSize(0.055); 
+                if (fieldName == "babyIAXO_2024_cutoff")
+                    graph->GetYaxis()->SetRangeUser(0, 120);
+                else
+                    graph->GetYaxis()->SetRangeUser(0, 160);
+                graph->GetXaxis()->SetLabelFont(40);  
+                graph->GetYaxis()->SetTitleSize(0.055); 
+                graph->GetYaxis()->SetTitleFont(40);  
+                graph->GetYaxis()->SetLabelSize(0.055); 
+                graph->GetYaxis()->SetLabelFont(40); 
                 if (colorIndex == 1) {
                     graph->Draw("ACP");
                 } else {
@@ -207,54 +279,24 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
                 graphsRun.push_back(graph);
             }
 
-            //if (useLogScale)
-                //canvasRun->SetLogy();
+            // // Crear un gráfico para la línea roja en babyIAXO_2024_cutoff
+            // TGraph *redLineGraph = new TGraph(2);
+            // if (fieldName == "babyIAXO_2024_cutoff"){
+            //     redLineGraph->SetPoint(0, mi, 33); // Establecer el punto inicial
+            //     redLineGraph->SetPoint(1, mf, 33); // Establecer el punto final
+            // }
+            // else{
+            //     redLineGraph->SetPoint(0, mi, 92); // Establecer el punto inicial
+            //     redLineGraph->SetPoint(1, mf, 92); // Establecer el punto final    
+            // }
+            // redLineGraph->SetLineColor(kRed); // Establecer el color de la línea roja
 
-            graphsRun[0]->SetTitle("");
-            graphsRun[0]->GetYaxis()->SetTitle("Tiempo Computacional (s)");
-            graphsRun[0]->GetXaxis()->SetTitle("Masa Axion (eV)");
-            graphsRun[0]->GetXaxis()->SetRange(mi, mf);
-            graphsRun[0]->GetXaxis()->SetTitleSize(0.03); 
-            graphsRun[0]->GetXaxis()->SetTitleFont(40);  
-            graphsRun[0]->GetXaxis()->SetLabelSize(0.025); 
-            graphsRun[0]->GetXaxis()->SetLabelFont(40);  
-            graphsRun[0]->GetYaxis()->SetTitleSize(0.03); 
-            graphsRun[0]->GetYaxis()->SetTitleFont(40);  
-            graphsRun[0]->GetYaxis()->SetLabelSize(0.025); 
-            graphsRun[0]->GetYaxis()->SetLabelFont(40); 
+            // // Dibujar la línea roja en el mismo gráfico que el gráfico "babyIAXO_2024_cutoff"
+            // redLineGraph->Draw("L SAME");
+
+
+            legendRun->SetTextSize(0.041);
             legendRun->Draw();
-
-            // Create the canvas to plot the residuals of probability between Standard and GSL integrals
-            TCanvas *canvasResiduals = new TCanvas((fieldName + "_Residuals").c_str(), (fieldName + "_Residuals").c_str(), 500, 300);
-            canvasResiduals->cd();
-
-            colorIndex = 1;
-            std::vector<Double_t> residuals;
-
-            for (size_t j = 0; j < mass.size(); ++j) {
-                Double_t resi = std::abs(integrations["Standard-Integral"].probability[j] - integrations["GSL-Integral"].probability[j]) / integrations["Standard-Integral"].probability[j] * 100.0;
-                residuals.push_back(resi);
-            }
-            TGraph *graphR = new TGraph(mass.size(), mass.data(), residuals.data());
-            graphR->SetMarkerStyle(8);
-            graphR->SetMarkerSize(0.4);
-            graphR->SetTitle("");
-            graphR->GetYaxis()->SetTitle("Residuos (%)");
-            graphR->GetXaxis()->SetTitle("Masa Axion (eV)");
-            graphR->GetXaxis()->SetRange(mi, mf);
-            graphR->GetXaxis()->SetTitleSize(0.04);
-            graphR->GetXaxis()->SetLabelSize(0.03);
-            graphR->GetYaxis()->SetTitleSize(0.04);
-            graphR->GetYaxis()->SetLabelSize(0.03);
-            graphR->GetYaxis()->SetTitleFont(62);
-            graphR->GetYaxis()->SetTitleOffset(1.0);
-            graphR->GetXaxis()->SetTitleFont(62);
-            graphR->GetYaxis()->SetLabelFont(62);
-            graphR->GetXaxis()->SetLabelFont(62);
-            graphR->Draw("AP"); 
-
-            if (useLogScale)
-                canvasResiduals->SetLogy();
 
             // Save the plots if required
             if (kSave) {
@@ -265,15 +307,12 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
 
                 std::string fileNameProb = fieldName + "_ProbabilityIntegral.pdf";
                 std::string fileNameRun = fieldName + "_RunTimeIntegral.pdf";
-                std::string fileNameResiduals = fieldName + "_Residuals.pdf";
                 canvasProb->SaveAs((folder + fileNameProb).c_str());
                 canvasRun->SaveAs((folder + fileNameRun).c_str());
-                canvasResiduals->SaveAs((folder + fileNameResiduals).c_str());
             }
 
             delete canvasProb;
             delete canvasRun;
-            delete canvasResiduals;
             delete legendProb;
             delete legendRun;
         }
@@ -292,8 +331,8 @@ Int_t REST_Axion_IntegralAnalysisPlot(Int_t nData = 100, Double_t Ea = 4.2, std:
 
         outputFile << "Mass" << "\t" << "ProbabilidadStandard" << "\t" << "TiempoStandard (μs)" << "\t" << "ProbabilidadGSL" << "\t" << "ErrorGSL" << "TiempoGSL (μs)" << std::endl;
         for(size_t i = 0; i<nData; i++){
-            outputFile << mass[i] << "\t" << integrations["Standard-Integral"].probability[i] << "\t" << integrations["Standard-Integral"].timeComputation[i] << "\t" 
-            << integrations["GSL-Integral"].probability[i] << "\t" << integrations["GSL-Integral"].error[i] << "\t" << integrations["GSL-Integral"].timeComputation[i] <<  std::endl;
+            outputFile << mass[i] << "\t" << integrations["Integral-Estandar"].probability[i] << "\t" << integrations["Integral-Estandar"].timeComputation[i] << "\t" 
+            << integrations["Integral-GSL"].probability[i] << "\t" << integrations["Integral-GSL"].error[i] << "\t" << integrations["Integral-GSL"].timeComputation[i] <<  std::endl;
         }
         outputFile.close();
 

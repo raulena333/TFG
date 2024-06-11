@@ -43,8 +43,8 @@ constexpr bool kSave = true;
 
 void SetYRange(TGraph* graph, Double_t percentage = 0.1);
 
-Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.01, 
-                                    Double_t m3 = 0.1, Double_t m2 = 0.3, Double_t accuracyInitial = 0.1, Double_t accuracyFinal = 1.) {
+Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 70, Double_t Ea = 4.2, std::string gasName = "He", Double_t m1 = 0.01, 
+                                    Double_t m3 = 0.1, Double_t m2 = 0.33, Double_t accuracyInitial = 0.1, Double_t accuracyFinal = 1.) {
 
     // Create Variables
     std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", //"babyIAXO_2024"
@@ -123,75 +123,86 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::s
             }
 
            if (kPlot) {
-                TCanvas *canvas = new TCanvas((fieldName + "_Analysis" + std::to_string(ma)).c_str(), (fieldName + "_Analysis" + std::to_string(ma)).c_str(), 1200, 400);
+                TCanvas *canvas = new TCanvas((fieldName + "_Analysis" + std::to_string(ma)).c_str(), (fieldName + "_Analysis" + std::to_string(ma)).c_str(), 1300, 400);
                 canvas->Divide(3, 1);
 
                 // First pad for the probability integration plot
                 canvas->cd(1);
+                gPad->SetLeftMargin(0.17);
+                gPad->SetBottomMargin(0.14);
                 TGraph *graphProb = new TGraph(nData, &accuracyValues[0], &probValues[0]);
                 graphProb->SetTitle("");
                 //graphProb->SetMarkerStyle(8); 
                 //graphProb->SetMarkerColor(kBlack); 
                 //graphProb->SetMarkerSize(0.4);  
-                graphProb->SetLineColor(kBlack); 
+                graphProb->SetLineColor(kRed); 
                 graphProb->SetLineWidth(2);
                 graphProb->GetXaxis()->SetTitle("Precision");
                 graphProb->GetYaxis()->SetTitle("Probabilidad");
                 graphProb->GetXaxis()->SetRangeUser(accuracyInitial, accuracyFinal);
-                SetYRange(graphProb, 0.05);
-                graphProb->GetXaxis()->SetTitleSize(0.03); 
+                SetYRange(graphProb, 0.1);
+                graphProb->GetYaxis()->SetNdivisions(505);
+                graphProb->GetXaxis()->SetNdivisions(505);
+                graphProb->GetXaxis()->SetTitleSize(0.0625); 
                 graphProb->GetXaxis()->SetTitleFont(40);  
-                graphProb->GetXaxis()->SetLabelSize(0.025); 
+                graphProb->GetXaxis()->SetLabelSize(0.0652); 
                 graphProb->GetXaxis()->SetLabelFont(40);  
-                graphProb->GetYaxis()->SetTitleSize(0.03); 
+                graphProb->GetYaxis()->SetTitleSize(0.0625); 
                 graphProb->GetYaxis()->SetTitleFont(40);  
-                graphProb->GetYaxis()->SetLabelSize(0.025); 
+                graphProb->GetYaxis()->SetLabelSize(0.0625); 
                 graphProb->GetYaxis()->SetLabelFont(40);
                 graphProb->Draw("ACP");
 
                 // Second pad for the error integration plot
                 canvas->cd(2);
+                gPad->SetLeftMargin(0.18);
+                gPad->SetBottomMargin(0.14);
                 TGraph *graphError = new TGraph(nData, &accuracyValues[0], &errorValues[0]);
                 graphError->SetTitle("");
                 //graphError->SetMarkerStyle(8);
                 //graphError->SetMarkerColor(kBlack);  
                 //graphError->SetMarkerSize(0.4);  
-                graphError->SetLineColor(kBlack); 
+                graphError->SetLineColor(kRed); 
                 graphError->SetLineWidth(2);
                 graphError->GetXaxis()->SetTitle("Precision");
                 graphError->GetYaxis()->SetTitle("Error");
                 graphError->GetXaxis()->SetRangeUser(accuracyInitial, accuracyFinal);
-                SetYRange(graphError, 0.05);
-                graphError->GetXaxis()->SetTitleSize(0.03); 
+                SetYRange(graphError, 0.1);
+                graphError->GetYaxis()->SetNdivisions(505);
+                graphError->GetXaxis()->SetNdivisions(505);
+                graphError->GetXaxis()->SetTitleSize(0.0625); 
                 graphError->GetXaxis()->SetTitleFont(40);  
-                graphError->GetXaxis()->SetLabelSize(0.025); 
+                graphError->GetXaxis()->SetLabelSize(0.0625); 
                 graphError->GetXaxis()->SetLabelFont(40);  
-                graphError->GetYaxis()->SetTitleSize(0.03); 
+                graphError->GetYaxis()->SetTitleSize(0.0625); 
                 graphError->GetYaxis()->SetTitleFont(40);  
-                graphError->GetYaxis()->SetLabelSize(0.025); 
+                graphError->GetYaxis()->SetLabelSize(0.0625); 
                 graphError->GetYaxis()->SetLabelFont(40); 
                 graphError->Draw("ACP");
 
                 // Third pad for the runtime plot
                 canvas->cd(3);
+                gPad->SetLeftMargin(0.22);
+                gPad->SetBottomMargin(0.14);
                 TGraph *graphRuntime = new TGraph(nData, &accuracyValues[0], &runValues[0]);
                 graphRuntime->SetTitle("");
                 //graphRuntime->SetMarkerStyle(8); 
                 //graphRuntime->SetMarkerColor(kBlack); 
                 //graphRuntime->SetMarkerSize(0.4);  
-                graphRuntime->SetLineColor(kBlack); 
+                graphRuntime->SetLineColor(kRed); 
                 graphRuntime->SetLineWidth(2);
                 graphRuntime->GetXaxis()->SetTitle("Precision");
                 graphRuntime->GetYaxis()->SetTitle("Tiempo computacional (ms)");
                 graphRuntime->GetXaxis()->SetRangeUser(accuracyInitial, accuracyFinal);
-                SetYRange(graphRuntime, 0.05);
-                graphRuntime->GetXaxis()->SetTitleSize(0.03); 
+                graphRuntime->GetYaxis()->SetNdivisions(505);
+                graphRuntime->GetXaxis()->SetNdivisions(505);
+                graphRuntime->GetXaxis()->SetTitleSize(0.0615); 
                 graphRuntime->GetXaxis()->SetTitleFont(40);  
-                graphRuntime->GetXaxis()->SetLabelSize(0.025); 
+                graphRuntime->GetXaxis()->SetLabelSize(0.0615); 
                 graphRuntime->GetXaxis()->SetLabelFont(40);  
-                graphRuntime->GetYaxis()->SetTitleSize(0.03); 
+                graphRuntime->GetYaxis()->SetTitleSize(0.0615); 
                 graphRuntime->GetYaxis()->SetTitleFont(40);  
-                graphRuntime->GetYaxis()->SetLabelSize(0.025); 
+                graphRuntime->GetYaxis()->SetLabelSize(0.0615); 
                 graphRuntime->GetYaxis()->SetLabelFont(40); 
                 graphRuntime->Draw("ACP");
 
@@ -199,7 +210,7 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::s
 
                 // Save the canvas if required
                 if (kSave) {
-                    std::string folder = "GSL_Integral_Analysis1/";
+                    std::string folder = "GSL_Integral_Analysis/";
                     std::ostringstream ossMass;
                     ossMass << std::fixed << std::setprecision(2) << ma;
                     if (!std::filesystem::exists(folder)) {
@@ -215,7 +226,7 @@ Int_t REST_Axion_GSLIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::s
             }
 
             std::string filename;
-            std::string folder = "GSL_Integral_Analysis1/";
+            std::string folder = "GSL_Integral_Analysis/";
             std::ostringstream ossMass;
             ossMass << std::fixed << std::setprecision(2) << ma;
             filename = folder + "REST_AXION_" + fieldName + "_GSLIntegralAnalysis_Mass_" + ossMass.str() + ".txt";   

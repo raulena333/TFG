@@ -43,11 +43,11 @@ constexpr bool kSave = true;
 
 void SetYRange(TGraph* graph, Double_t percentage = 0.1);
 
-Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, std::string gasName = "He", 
+Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 5, Double_t Ea = 4.2, std::string gasName = "He", 
             Double_t m1 = 0.01, Double_t m2 = 0.1, Double_t m3 = 0.3, Int_t dLinitial = 1, Int_t dLfinal = 200){
 
     // Create Variables
-    std::vector<std::string> fieldNames = {"babyIAXO_2024", //"babyIAXO_2024_cutoff"
+    std::vector<std::string> fieldNames = {"babyIAXO_2024_cutoff", //"babyIAXO_2024_cutoff"
     };
     const Double_t gasDensity = 2.9836e-10;
     const TVector3 initialPosition(-5, 5, -11000);
@@ -76,7 +76,9 @@ Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, s
     }
     
     for(const auto &fieldName : fieldNames){
-        
+        std::vector<Double_t> runValues;
+        std::vector<std::vector<Double_t>> probValues;
+
         // Create instance of magnetic field, axion field and buffer gas and then assign it.
         auto magneticField = std::make_unique<TRestAxionMagneticField>("fields.rml", fieldName);
         auto axionField = std::make_unique<TRestAxionField>();
@@ -85,7 +87,6 @@ Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, s
             axionField->AssignBufferGas(gas.get());
         axionField->AssignMagneticField(magneticField.get());
 
-        Int_t j = 0;
         for (const auto &ma : masses){
             if(kDebug){
                 std::cout << "+--------------------------------------------------------------------------+" << std::endl;
@@ -93,7 +94,9 @@ Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, s
                 std::cout << "+--------------------------------------------------------------------------+" << std::endl;
                 std::cout << std::endl;
             }
-            std::vector<Double_t> probValues, runValues;
+
+            // Initialize the vector for the current mass
+            std::vector<Double_t> probVector;
 
             for(const auto &dL : dLvec){
                 if(kDebug){
@@ -115,8 +118,9 @@ Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, s
                 auto end_time = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
 
-                probValues.push_back(probField);
-                runValues.push_back((durationStandard.count() + duration.count()) / 1e6);
+                probVector.push_back(probField);
+                if(ma == m1)
+                    runValues.push_back((durationStandard.count() + duration.count()) / 1e6);
 
                 if(kDebug){
                     std::cout << "Probability: " << probField << std::endl;
@@ -125,150 +129,105 @@ Int_t REST_Axion_StandardIntegralAnalysis(Int_t nData = 50, Double_t Ea = 4.2, s
                 }
             }
 
-            if(kPlot){
-                if(j == 0){
-                    // Create canvas
-                    TCanvas *canvas = new TCanvas((fieldName + std::to_string(ma) + "_Analysis").c_str(), (fieldName + std::to_string(ma) + "_Analysis").c_str(), 750, 450);
-                    canvas->Divide(2, 1);
+            probValues.push_back(probVector);
+        }
 
-                    // Plot probability graph
-                    canvas->cd(1);
-                    TGraph *graphProb = new TGraph(nData, &dLvec[0], &probValues[0]);
-                    graphProb->SetLineColor(kBlack);
-                    graphProb->SetLineWidth(2);
-                    graphProb->SetTitle("");
-                    graphProb->GetXaxis()->SetTitle("dL (mm)");
-                    graphProb->GetYaxis()->SetTitle("Probabilidad");
-                    graphProb->GetXaxis()->SetRange(dLinitial, dLfinal);
-                    //SetYRange(graphProb, 0.05);
-                    if(fieldName == "babyIAXO_2024_cutoff")
-                        graphProb->GetYaxis()->SetRangeUser(1e-30, 1e-18);
-                    else
-                        graphProb->GetYaxis()->SetRangeUser(1e-32, 1e-28);
-                    gPad->SetLogy();
-                    graphProb->GetXaxis()->SetTitleSize(0.03);
-                    graphProb->GetXaxis()->SetTitleFont(40);
-                    graphProb->GetXaxis()->SetLabelSize(0.025);
-                    graphProb->GetXaxis()->SetLabelFont(40);
-                    graphProb->GetYaxis()->SetTitleSize(0.03);
-                    graphProb->GetYaxis()->SetTitleFont(40);
-                    graphProb->GetYaxis()->SetLabelSize(0.025);
-                    graphProb->GetYaxis()->SetLabelFont(40);
-                    graphProb->Draw("ACP");
+        if (kPlot) {
+            // Plot all graphs on the same canvas and create a legend
+            TCanvas *canvas = new TCanvas((fieldName + "_Analysis").c_str(), (fieldName + "_Analysis").c_str(), 1200, 400);
+            canvas->Divide(2, 1);
 
-                    // Plot runtime graph
-                    canvas->cd(2);
-                    TGraph *graphRun = new TGraph(nData, &dLvec[0], &runValues[0]);
-                    graphRun->SetLineColor(kBlack);
-                    graphRun->SetLineWidth(2);
-                    graphRun->SetTitle("");
-                    graphRun->GetXaxis()->SetTitle("dL (mm)");
-                    graphRun->GetYaxis()->SetTitle("Tiempo Computacional (s)");
-                    graphRun->GetXaxis()->SetRange(dLinitial, dLfinal);
-                    SetYRange(graphRun,0.05);
-                    graphRun->GetXaxis()->SetTitleSize(0.03);
-                    graphRun->GetXaxis()->SetTitleFont(40);
-                    graphRun->GetXaxis()->SetLabelSize(0.025);
-                    graphRun->GetXaxis()->SetLabelFont(40);
-                    graphRun->GetYaxis()->SetTitleSize(0.03);
-                    graphRun->GetYaxis()->SetTitleFont(40);
-                    graphRun->GetYaxis()->SetLabelSize(0.025);
-                    graphRun->GetYaxis()->SetLabelFont(40);
-                    graphRun->Draw("ACP");
+            // First pad for probability graphs
+            canvas->cd(1);
 
-                    // Update canvas
-                    canvas->Update();
+            TLegend *legend = new TLegend(0.4, 0.65, 0.7, 0.85); // Adjust legend position
 
-                    // Save canvas if required
-                    if(kSave){
-                        std::string folder = "Standard_Integral_Analysis2/";
-                        std::ostringstream ossMass;
-                        ossMass << std::fixed << std::setprecision(2) << ma;
-                        if (!std::filesystem::exists(folder)) {
-                            std::filesystem::create_directory(folder);
-                        }
-                        canvas->SaveAs((folder + fieldName + "_Analysis_Standard_Mass_" + ossMass.str() + ".pdf").c_str());
-                    }
+            // Initialize colors and color index
+            std::vector<int> colors = {kRed, kBlue, kGreen, kMagenta};
+            int colorIndex = 0;
 
-                    // Delete objects
-                    delete canvas;
-                    delete graphProb;
-                    delete graphRun;
+            for (size_t j = 0; j < probValues.size(); j++) {
+                // Extract the probabilities for the current field track
+                const auto& probabilities = probValues[j];
 
-                    j++;
+                // Create TGraph for each field track
+                TGraph *graph = new TGraph(probabilities.size(), &dLvec[0], probabilities.data());
+                graph->SetLineColor(colors[colorIndex]); // Set line color
+                graph->SetLineWidth(2); // Set line width
+                graph->SetTitle(""); // Set title
+                graph->GetXaxis()->SetTitle("dL (mm)");
+                graph->GetYaxis()->SetTitle("Probabilidad");
+                graph->GetXaxis()->SetRangeUser(dLinitial, dLfinal);
+                graph->GetYaxis()->SetRangeUser(1e-32, 1e-18);
+                graph->GetXaxis()->SetTitleSize(0.06);
+                graph->GetXaxis()->SetTitleFont(40);
+                graph->GetXaxis()->SetLabelSize(0.06);
+                graph->GetXaxis()->SetLabelFont(40);
+                graph->GetYaxis()->SetTitleSize(0.06);
+                graph->GetYaxis()->SetTitleFont(40);
+                graph->GetYaxis()->SetLabelSize(0.06);
+                graph->GetYaxis()->SetLabelFont(40);
+                graph->GetYaxis()->SetNdivisions(505);
+
+                graph->Draw(j == 0 ? "ACP" : "CP SAME"); // Draw the graph on the canvas
+
+                std::ostringstream ossMass;
+                ossMass << std::fixed << std::setprecision(2) << masses[j];
+                legend->AddEntry(graph, ("Masa = " + ossMass.str() + " eV").c_str(), "l");
+
+                // Increment color index, or reset to 0 if exceeding the color options
+                colorIndex = (colorIndex + 1) % colors.size();
+            }
+
+            // Set attributes for the canvas
+            gPad->SetLogy(); // Set Y-axis to logarithmic scale
+            gPad->SetBottomMargin(0.13);
+            gPad->SetLeftMargin(0.15);
+
+            legend->SetTextSize(0.05);
+            legend->Draw(); // Draw legend
+
+            // Second pad for runtime graph
+            canvas->cd(2);
+            gPad->SetLeftMargin(0.15); // Adjust left margin
+
+            TGraph *graphRun = new TGraph(nData, &dLvec[0], &runValues[0]);
+            graphRun->SetLineColor(kBlack);
+            graphRun->SetLineWidth(2);
+            graphRun->SetTitle("");
+            graphRun->GetXaxis()->SetTitle("dL (mm)");
+            graphRun->GetYaxis()->SetTitle("Tiempo Computacional (s)");
+            graphRun->GetXaxis()->SetRangeUser(dLinitial, dLfinal);
+            SetYRange(graphRun, 0.05);
+            graphRun->GetXaxis()->SetTitleSize(0.06);
+            graphRun->GetXaxis()->SetTitleFont(40);
+            graphRun->GetXaxis()->SetLabelSize(0.06);
+            graphRun->GetXaxis()->SetLabelFont(40);
+            graphRun->GetYaxis()->SetTitleSize(0.06);
+            graphRun->GetYaxis()->SetTitleFont(40);
+            graphRun->GetYaxis()->SetLabelSize(0.06);
+            graphRun->GetYaxis()->SetLabelFont(40);
+            graphRun->Draw("ACP");
+            gPad->SetBottomMargin(0.13);
+
+            // Update canvas
+            canvas->Update();
+
+            // Save canvas if required
+            if (kSave) {
+                std::string folder = "Standard_Integral_Analysis/";
+                if (!std::filesystem::exists(folder)) {
+                    std::filesystem::create_directory(folder);
                 }
-                else{   
-                    // Create canvas
-                    TCanvas *canvas = new TCanvas((fieldName + std::to_string(ma) + "_Analysis").c_str(), (fieldName + std::to_string(ma) + "_Analysis").c_str(), 650, 400);
-
-                    // Plot probability graph
-                    canvas->cd(1);
-                    TGraph *graphProb = new TGraph(nData, &dLvec[0], &probValues[0]);
-                    graphProb->SetLineColor(kBlack);
-                    graphProb->SetLineWidth(2);
-                    graphProb->SetTitle("");
-                    graphProb->GetXaxis()->SetTitle("dL (mm)");
-                    graphProb->GetYaxis()->SetTitle("Probabilidad");
-                    graphProb->GetXaxis()->SetRange(dLinitial, dLfinal);
-                    SetYRange(graphProb, 0.05);
-                    if (ma != gas->GetPhotonMass(Ea)){
-                        if(ma == 0.1)
-                            graphProb->GetYaxis()->SetRangeUser(1e-32, 1e-18);
-                        else if(ma == 0.3)
-                            graphProb->GetYaxis()->SetRangeUser(1e-33, 1e-18);
-                        gPad->SetLogy();
-                    }
-                    graphProb->GetXaxis()->SetTitleSize(0.03);
-                    graphProb->GetXaxis()->SetTitleFont(40);
-                    graphProb->GetXaxis()->SetLabelSize(0.025);
-                    graphProb->GetXaxis()->SetLabelFont(40);
-                    graphProb->GetYaxis()->SetTitleSize(0.03);
-                    graphProb->GetYaxis()->SetTitleFont(40);
-                    graphProb->GetYaxis()->SetLabelSize(0.025);
-                    graphProb->GetYaxis()->SetLabelFont(40);
-                    graphProb->Draw("ACP");
-
-                    // Update canvas
-                    canvas->Update();
-
-                    // Save canvas if required
-                    if(kSave){
-                        std::string folder = "Standard_Integral_Analysis2/";
-                        std::ostringstream ossMass;
-                        ossMass << std::fixed << std::setprecision(2) << ma;
-                        if (!std::filesystem::exists(folder)) {
-                            std::filesystem::create_directory(folder);
-                        }
-                        canvas->SaveAs((folder + fieldName + "_Analysis_Standard_Mass_" + ossMass.str() + ".pdf").c_str());
-                    }
-
-                    // Delete objects
-                    delete canvas;
-                    delete graphProb;
-
-                    j++;
-                }
+                canvas->SaveAs((folder + fieldName + "_Analysis_Standard_Mass.pdf").c_str());
             }
 
-            std::string filename;
-            std::string folder = "Standard_Integral_Analysis2/";
-            std::ostringstream ossMass;
-            ossMass << std::fixed << std::setprecision(2) << ma;
-            filename = folder + "REST_AXION_" + fieldName + "_StandardIntegralAnalysis_Mass_" + ossMass.str() + ".txt";   
+            // Clean up
+            delete canvas;
+            delete legend;
+        }
 
-            std::ofstream outputFile(filename);
-            if (!outputFile.is_open()) {
-                std::cerr << "Error: Unable to open the file for writing!" << std::endl;
-                return 1;
-            }
 
-            outputFile << "dL" << "\t" << "Probabilidad" << "\t" << "Tiempo (s)" << std::endl;
-            for(size_t i = 0; i<nData; i++){
-                outputFile << dLvec[i] << "\t" << probValues[i] << "\t" << runValues[i] << std::endl;
-            }
-            outputFile.close();
-
-        }     
     }
     return 0;
 }
